@@ -10,23 +10,24 @@ You can also access the license on the internet at the address: http://www.gnu.o
 Interactive Health Solutions, hereby disclaims all copyright interest in this program written by the contributors.
  */
 
-package com.ihsinformatics.gfatmnotifications.common.model;
+package com.ihsinformatics.gfatmnotifications.common.util;
 
 import java.lang.reflect.Type;
 import java.util.Date;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
+import com.google.gson.JsonParseException;
 
 /**
  * @author owais.hussain@ihsinformatics.com
  *
  */
-public class DateDeserializer implements JsonSerializer<Date> {
+public class DateSerializer implements JsonDeserializer<Date> {
 	@Override
-	public JsonElement serialize(Date date, Type typeOfSrc, JsonSerializationContext context) {
-		return date == null ? null : new JsonPrimitive(date.getTime());
+	public Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+			throws JsonParseException {
+		return json == null ? null : new Date(json.getAsLong());
 	}
 }

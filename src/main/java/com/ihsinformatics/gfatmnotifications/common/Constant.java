@@ -14,6 +14,7 @@ import com.ihsinformatics.util.DatabaseUtil;
  */
 public class Constant {
 
+	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
 	private static Properties props;
 
 	private static List<User> users;
@@ -22,9 +23,6 @@ public class Constant {
 	private static Map<Integer, String> encounterTypes;
 
 	private DatabaseUtil dbUtil;
-
-	private Constant() {
-	}
 
 	/**
 	 * @return the users
@@ -85,14 +83,14 @@ public class Constant {
 	/**
 	 * @return the props
 	 */
-	public Properties getProps() {
+	public static Properties getProps() {
 		return props;
 	}
 
 	/**
 	 * @param props the props to set
 	 */
-	public void setProps(Properties props) {
+	public static void setProps(Properties props) {
 		Constant.props = props;
 	}
 

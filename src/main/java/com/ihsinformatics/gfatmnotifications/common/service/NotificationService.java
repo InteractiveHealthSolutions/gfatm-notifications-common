@@ -21,7 +21,5 @@ public interface NotificationService extends Job {
 
 	public void initialize();
 
-	public void readProperties();
-
 	public boolean sendNotification(String adressTo, String message, String subject);
 }
