@@ -15,14 +15,15 @@ import com.ihsinformatics.util.DatabaseUtil;
 public class Constant {
 
 	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
-	private static Properties props;
+	public static final String PROJECT_NAME = "GFATM-Notifications";
+	private static Properties props = new Properties();
 
 	private static List<User> users;
 	private static List<Location> locations;
 	private static List<String> userRoles;
 	private static Map<Integer, String> encounterTypes;
 
-	private DatabaseUtil dbUtil;
+	private static DatabaseUtil dbUtil;
 
 	/**
 	 * @return the users
@@ -97,14 +98,14 @@ public class Constant {
 	/**
 	 * @return the localDb
 	 */
-	public DatabaseUtil getLocalDb() {
+	public static DatabaseUtil getLocalDb() {
 		return dbUtil;
 	}
 
 	/**
 	 * @param localDb the localDb to set
 	 */
-	public void setLocalDb(DatabaseUtil localDb) {
-		this.dbUtil = localDb;
+	public static void setLocalDb(DatabaseUtil localDb) {
+		Constant.dbUtil = localDb;
 	}
 }

@@ -32,6 +32,7 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.ihsinformatics.gfatmnotifications.common.Constant;
 import com.ihsinformatics.gfatmnotifications.common.model.Contact;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
@@ -39,7 +40,6 @@ import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.util.DateDeserializer;
 import com.ihsinformatics.gfatmnotifications.common.util.DateSerializer;
-import com.ihsinformatics.util.DatabaseUtil;
 import com.ihsinformatics.util.DateTimeUtil;
 
 /**
@@ -50,21 +50,8 @@ public class GfatmDatabaseUtil {
 
 	private static final Logger log = Logger.getLogger(Class.class.getName());
 	private static Map<Integer, String> encounterTypes;
-	private DatabaseUtil db;
 
 	public GfatmDatabaseUtil() {
-	}
-
-	public GfatmDatabaseUtil(DatabaseUtil db) {
-		setDb(db);
-	}
-
-	public DatabaseUtil getDb() {
-		return db;
-	}
-
-	public void setDb(DatabaseUtil db) {
-		this.db = db;
 	}
 
 	/**
@@ -81,7 +68,7 @@ public class GfatmDatabaseUtil {
 		List<Map<String, Object>> listOfMaps = null;
 		QueryRunner queryRunner = new QueryRunner();
 		try {
-			listOfMaps = queryRunner.query(db.getConnection(), query, new MapListHandler());
+			listOfMaps = queryRunner.query(Constant.getLocalDb().getConnection(), query, new MapListHandler());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -117,7 +104,7 @@ public class GfatmDatabaseUtil {
 		UtilityCollection.getInstance().setEncounterTypes(new HashMap<Integer, String>());
 		HashMap<Integer, String> mappingEncounter = new HashMap<Integer, String>();
 		StringBuilder query = new StringBuilder("SELECT encounter_type_id, name FROM encounter_type where retired = 0");
-		Object[][] data = db.getTableData(query.toString());
+		Object[][] data = Constant.getLocalDb().getTableData(query.toString());
 		if (data == null) {
 			return;
 		}
@@ -244,8 +231,23 @@ public class GfatmDatabaseUtil {
 		UtilityCollection.getInstance().setUsers(users);
 	}
 
-	public void loadPatients() {
+	public List<Contact> loadUserContacts() {
+		UtilityCollection.getInstance().setEmailList(new ArrayList<Contact>());
+		StringBuilder query = new StringBuilder();
+		query.append(
+				" select distinct dl.location_id as locationId,dl.location_name as locationName ,pam.email_address as emailAdress,dl.primary_contact as primaryContact,dl.secondary_contact as secondaryContact from person_attribute_merged pam ");
+		query.append(" inner join users u on u.person_id = pam.person_id ");
+		query.append(" inner join dim_location dl on dl.Site_Supervisor_System_ID = u.system_id ");
+		String jsonString = queryToJson(query.toString());
+		Type listType = new TypeToken<List<Contact>>() {
+		}.getType();
+		Gson gson = new Gson();
+		List<Contact> emailList = gson.fromJson(jsonString, listType);
+		UtilityCollection.getInstance().setEmailList(emailList);
+		return UtilityCollection.getInstance().getEmailList();
+	}
 
+	public void loadPatients() {
 		UtilityCollection.getInstance().setPatients(new ArrayList<Patient>());
 		StringBuilder query = new StringBuilder();
 		query.append(
@@ -305,7 +307,6 @@ public class GfatmDatabaseUtil {
 				"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
-
 		String jsonString = queryToJson(query.toString());
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
@@ -322,7 +323,6 @@ public class GfatmDatabaseUtil {
 	 * @return
 	 */
 	public Encounter getEncounter(int encounterId, int encounterTypeId) {
-
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id, et.name as encounter_type, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patient_name, e.encounter_datetime, l.description as encounter_location, pc.value as patient_contact, lc.value_reference as location_contact, pr.identifier as provider, upc.value as provider_contact, u.username, e.date_created, e.uuid from encounter as e ");
@@ -342,14 +342,11 @@ public class GfatmDatabaseUtil {
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append("where e.encounter_id = " + encounterId + " and e.encounter_type = " + encounterTypeId);
 		query.append(" and e.voided = 0 ");
-
 		String jsonString = queryToJson(query.toString());
 		Gson gson = new Gson();
-
 		Type type = new TypeToken<List<Encounter>>() {
 		}.getType();
 		List<Encounter> encounter = gson.fromJson(jsonString, type);
-
 		return encounter.get(0);
 	}
 
@@ -365,19 +362,15 @@ public class GfatmDatabaseUtil {
 		if (from == null || to == null) {
 			return null;
 		}
-		@SuppressWarnings("deprecation")
-		String sqlFrom = DateTimeUtil.getSqlDateTime(from.toDate());
-		@SuppressWarnings("deprecation")
-		String sqlTo = DateTimeUtil.getSqlDateTime(to.toDate());
+		String sqlFrom = DateTimeUtil.toSqlDateTimeString(from.toDate());
+		String sqlTo = DateTimeUtil.toSqlDateTimeString(to.toDate());
 		StringBuilder filter = new StringBuilder();
 		filter.append("where e.voided = 0 and e.date_created between ");
-		// filter.append("timestamp('" + sqlFrom + "')");
-		filter.append("timestamp('2017-06-01')");
-		filter.append(" and ");
-		// filter.append("timestamp('" + sqlTo + "')");
-		filter.append("timestamp('2017-10-02')");
-		filter.append(" and ");
-		filter.append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24");
+		filter.append("timestamp('" + sqlFrom + "') ");
+		filter.append("and ");
+		filter.append("timestamp('" + sqlTo + "') ");
+		filter.append("and ");
+		filter.append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24 ");
 		if (type != null) {
 			filter.append(" and e.encounter_type=" + type);
 		}
@@ -454,7 +447,7 @@ public class GfatmDatabaseUtil {
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());
 
 		// System.out.println(query);
-		Object[][] data = db.getTableData(query.toString());
+		Object[][] data = Constant.getLocalDb().getTableData(query.toString());
 		observations = new HashMap<String, Object>();
 		for (Object[] row : data) {
 			int k = 0;
@@ -525,25 +518,9 @@ public class GfatmDatabaseUtil {
 		return userRoleArray;
 	}
 
-	public List<Contact> LoadAllUsersContact() {
-		UtilityCollection.getInstance().setEmailList(new ArrayList<Contact>());
-		StringBuilder query = new StringBuilder();
-		query.append(
-				" select distinct dl.location_id as locationId,dl.location_name as locationName ,pam.email_address as emailAdress,dl.primary_contact as primaryContact,dl.secondary_contact as secondaryContact from person_attribute_merged pam ");
-		query.append(" inner join users u on u.person_id = pam.person_id ");
-		query.append(" inner join dim_location dl on dl.Site_Supervisor_System_ID = u.system_id ");
-		String jsonString = queryToJson(query.toString());
-		Type listType = new TypeToken<List<Contact>>() {
-		}.getType();
-		Gson gson = new Gson();
-		List<Contact> emailList = gson.fromJson(jsonString, listType);
-		UtilityCollection.getInstance().setEmailList(emailList);
-		return UtilityCollection.getInstance().getEmailList();
-	}
-
 	public Contact getContactByLocationId(int locationId) {
 		if (UtilityCollection.getInstance().getEmailList().isEmpty()) {
-			LoadAllUsersContact();
+			loadUserContacts();
 		}
 		for (Contact email : UtilityCollection.getInstance().getEmailList()) {
 			if (email.getLocationId() == locationId) {
@@ -554,9 +531,8 @@ public class GfatmDatabaseUtil {
 	}
 
 	public Contact getContactByLocationName(String locationName) {
-
 		if (UtilityCollection.getInstance().getEmailList().isEmpty()) {
-			LoadAllUsersContact();
+			loadUserContacts();
 		}
 		for (Contact email : UtilityCollection.getInstance().getEmailList()) {
 			if (email.getLocationName().equals(locationName)) {

@@ -11,6 +11,8 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 */
 package com.ihsinformatics.gfatmnotifications.common.service;
 
+import java.util.Date;
+
 import org.quartz.Job;
 
 /**
@@ -19,7 +21,12 @@ import org.quartz.Job;
  */
 public interface NotificationService extends Job {
 
-	public void initialize();
-
-	public boolean sendNotification(String adressTo, String message, String subject);
+	/**
+	 * @param adressTo
+	 * @param message
+	 * @param subject
+	 * @param sendOn
+	 * @return
+	 */
+	public String sendNotification(String adressTo, String message, String subject, Date sendOn);
 }
