@@ -24,15 +24,15 @@ public class Location implements Serializable {
 	 *
 	 */
 	private static final long serialVersionUID = -4675815525012531145L;
-	private Integer location_id;
+	private Integer locationId;
 	private String name;
 	private Integer parentId;
 	private String uuid;
-	private Boolean fast;
-	private Boolean pet;
-	private Boolean childhoodTb;
-	private Boolean comorbidities;
-	private Boolean pmdt;
+	private Integer fast;
+	private Integer pet;
+	private Integer childhoodTb;
+	private Integer comorbidities;
+	private Integer pmdt;
 	private String primaryContact;
 	private String primaryContactName;
 	private String secondaryContact;
@@ -41,25 +41,25 @@ public class Location implements Serializable {
 	private String address1;
 	private String address2;
 	private String address3;
-	private String city_village;
-	private String state_province;
+	private String cityVillage;
+	private String stateProvince;
 	private String description;
 	private String country;
-	private long date_created;
+	private long dateCreated;
 	private Boolean status;
 
 	/**
 	 * @return the locationId
 	 */
 	public Integer getLocationId() {
-		return location_id;
+		return locationId;
 	}
 
 	/**
 	 * @param locationId the locationId to set
 	 */
 	public void setLocationId(Integer locationId) {
-		location_id = locationId;
+		this.locationId = locationId;
 	}
 
 	/**
@@ -107,70 +107,105 @@ public class Location implements Serializable {
 	/**
 	 * @return the fast
 	 */
-	public Boolean getFast() {
+	public Integer getFast() {
 		return fast;
+	}
+
+	/**
+	 * @return
+	 */
+	public Boolean isFast() {
+		return fast == 1;
 	}
 
 	/**
 	 * @param fast the fast to set
 	 */
-	public void setFast(Boolean fast) {
+	public void setFast(Integer fast) {
 		this.fast = fast;
 	}
 
 	/**
 	 * @return the pet
 	 */
-	public Boolean getPet() {
+	public Integer getPet() {
 		return pet;
+	}
+
+	/**
+	 * @return
+	 */
+	public Boolean isPet() {
+		return pet == 1;
 	}
 
 	/**
 	 * @param pet the pet to set
 	 */
-	public void setPet(Boolean pet) {
+	public void setPet(Integer pet) {
 		this.pet = pet;
 	}
 
 	/**
 	 * @return the childhoodTb
 	 */
-	public Boolean getChildhoodTb() {
+	public Integer getChildhoodTb() {
 		return childhoodTb;
+	}
+
+	/**
+	 * @return
+	 */
+	public Boolean isChildhoodTb() {
+		return childhoodTb == 1;
 	}
 
 	/**
 	 * @param childhoodTb the childhoodTb to set
 	 */
-	public void setChildhoodTb(Boolean childhoodTb) {
+	public void setChildhoodTb(Integer childhoodTb) {
 		this.childhoodTb = childhoodTb;
 	}
 
 	/**
 	 * @return the comorbidities
 	 */
-	public Boolean getComorbidities() {
+	public Integer getComorbidities() {
 		return comorbidities;
+	}
+
+	/**
+	 * @return
+	 */
+	public Boolean isComorbidities() {
+		return comorbidities == 1;
 	}
 
 	/**
 	 * @param comorbidities the comorbidities to set
 	 */
-	public void setComorbidities(Boolean comorbidities) {
+	public void setComorbidities(Integer comorbidities) {
 		this.comorbidities = comorbidities;
 	}
 
 	/**
 	 * @return the pmdt
 	 */
-	public Boolean getPmdt() {
+	public Integer getPmdt() {
 		return pmdt;
+	}
+
+	/**
+	 * @return
+	 */
+	public Boolean isPmdt() {
+		return pmdt == 1;
 	}
 
 	/**
 	 * @param pmdt the pmdt to set
 	 */
-	public void setPmdt(Boolean pmdt) {
+	public void setPmdt(Integer pmdt) {
 		this.pmdt = pmdt;
 	}
 
@@ -290,28 +325,28 @@ public class Location implements Serializable {
 	 * @return the cityVillage
 	 */
 	public String getCityVillage() {
-		return city_village;
+		return cityVillage;
 	}
 
 	/**
 	 * @param cityVillage the cityVillage to set
 	 */
 	public void setCityVillage(String cityVillage) {
-		city_village = cityVillage;
+		this.cityVillage = cityVillage;
 	}
 
 	/**
 	 * @return the stateProvince
 	 */
 	public String getStateProvince() {
-		return state_province;
+		return stateProvince;
 	}
 
 	/**
 	 * @param stateProvince the stateProvince to set
 	 */
 	public void setStateProvince(String stateProvince) {
-		state_province = stateProvince;
+		this.stateProvince = stateProvince;
 	}
 
 	/**
@@ -332,14 +367,14 @@ public class Location implements Serializable {
 	 * @return the dateCreated
 	 */
 	public long getDateCreated() {
-		return date_created;
+		return dateCreated;
 	}
 
 	/**
 	 * @param dateCreated the dateCreated to set
 	 */
 	public void setDateCreated(long dateCreated) {
-		date_created = dateCreated;
+		this.dateCreated = dateCreated;
 	}
 
 	/**
