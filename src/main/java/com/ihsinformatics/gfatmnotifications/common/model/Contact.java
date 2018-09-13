@@ -2,9 +2,9 @@ package com.ihsinformatics.gfatmnotifications.common.model;
 
 public class Contact {
 
-	private String emailAdress;
 	private Integer locationId;
 	private String locationName;
+	private String emailAdress;
 	private String primaryContact;
 	private String secondaryContact;
 

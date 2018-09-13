@@ -39,7 +39,7 @@ public class Context {
 	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
 	public static final String PROJECT_NAME = "GFATM-Notifications";
 
-	private static Properties props = new Properties();
+	private static Properties props;
 	private static DatabaseUtil dbUtil;
 	private static GsonBuilder builder;
 
@@ -54,6 +54,10 @@ public class Context {
 		try {
 			log.info("Reading properties...");
 			readProperties();
+			if (getProps() == null) {
+				log.severe("Unable to read properties file.");
+				System.exit(-1);
+			}
 			String url = getProps().getProperty("local.connection.url", "jdbc:mysql://localhost:3306");
 			String dbName = getProps().getProperty("local.connection.database", "gfatm_dw");
 			String driverName = getProps().getProperty("local.connection.driver_class", "com.mysql.jdbc.Driver");
@@ -95,10 +99,16 @@ public class Context {
 		}
 	}
 
+	/**
+	 * Read properties from PROP_FILE
+	 * 
+	 * @throws IOException
+	 */
 	public static void readProperties() throws IOException {
 		InputStream inputStream = ClassLoaderUtil.getResourceAsStream(PROP_FILE_NAME, Context.class);
 		if (inputStream != null) {
-			getProps().load(inputStream);
+			props = new Properties();
+			props.load(inputStream);
 		}
 	}
 
@@ -158,6 +168,9 @@ public class Context {
 		return obj == null ? null : obj.toString();
 	}
 
+	/**
+	 * Fetch all encounter types from DB and store locally
+	 */
 	public static void loadEncounterTypes() {
 		encounterTypes = new HashMap<Integer, String>();
 		StringBuilder query = new StringBuilder(
@@ -172,7 +185,7 @@ public class Context {
 	}
 
 	/**
-	 * Fetch all locations from DB and store into locations
+	 * Fetch all locations from DB and store locally
 	 */
 	public static void loadLocations() {
 		setLocations(new ArrayList<Location>());
@@ -214,7 +227,7 @@ public class Context {
 	}
 
 	/**
-	 * Fetch all users from DB and store into users
+	 * Fetch all users from DB and store locally
 	 */
 	public static void loadUsers() {
 		setUsers(new ArrayList<User>());
@@ -257,18 +270,33 @@ public class Context {
 		users = builder.create().fromJson(jsonString, listType);
 	}
 
+	/**
+	 * Fetch all contacts from DB and store locally
+	 */
 	public static void loadUserContacts() {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select dl.location_id as locationId, dl.location_name as locationName, pam.email_address as emailAdress, dl.primary_contact as primaryContact, dl.secondary_contact as secondaryContact from person_attribute_merged pam ");
-		query.append("inner join users u on u.person_id = pam.person_id ");
-		query.append("inner join dim_location dl on dl.Site_Supervisor_System_ID = u.system_id ");
+				"select u.user_id, u.person_id as personId, em.value as emailAddress, pc.value as primaryContact, sc.value as secondaryContact, la.location_id as locationId, l.name as locationName from users as u ");
+		query.append(
+				"left outer join location_attribute as la on la.attribute_type_id = 16 and la.value_reference = u.system_id ");
+		query.append("left outer join location as l on l.location_id = la.location_id ");
+		query.append(
+				"left outer join person_attribute as em on em.person_id = u.person_id and em.person_attribute_type_id = 29 and em.voided = 0 ");
+		query.append(
+				"left outer join person_attribute as pc on pc.person_id = u.person_id and pc.person_attribute_type_id = 8 and pc.voided = 0 ");
+		query.append(
+				"left outer join person_attribute as sc on sc.person_id = u.person_id and sc.person_attribute_type_id = 12 and sc.voided = 0 ");
+		query.append(
+				"having (concat(ifnull(emailAddress, ''), ifnull(primaryContact, ''), ifnull(secondaryContact, ''))) <> ''");
 		String jsonString = queryToJson(query.toString());
 		Type listType = new TypeToken<List<Contact>>() {
 		}.getType();
 		userContacts = builder.create().fromJson(jsonString, listType);
 	}
 
+	/**
+	 * Fetch all patients from DB and store locally
+	 */
 	public static void loadPatients() {
 		StringBuilder query = new StringBuilder();
 		query.append(
@@ -504,6 +532,18 @@ public class Context {
 		}
 		for (User user : getUsers()) {
 			if (user.getUserId().equals(id)) {
+				return user;
+			}
+		}
+		return null;
+	}
+
+	public static User getUserByUsername(String username) {
+		if (getUsers().isEmpty()) {
+			loadUsers();
+		}
+		for (User user : getUsers()) {
+			if (user.getUsername().equals(username)) {
 				return user;
 			}
 		}
