@@ -53,6 +53,28 @@ public class Encounter {
 		this.uuid = uuid;
 	}
 
+	public Encounter(Integer encounterId, String encounterType, long encounterDatetime, String patientId,
+			String identifier, String patientName, String patientContact, String encounterLocation,
+			String locationContact, String provider, String providerContact, String username, long dateCreated,
+			String uuid, Map<String, Object> observations) {
+		super();
+		this.encounterId = encounterId;
+		this.encounterType = encounterType;
+		this.encounterDatetime = encounterDatetime;
+		this.patientId = patientId;
+		this.identifier = identifier;
+		this.patientName = patientName;
+		this.patientContact = patientContact;
+		this.encounterLocation = encounterLocation;
+		this.locationContact = locationContact;
+		this.provider = provider;
+		this.providerContact = providerContact;
+		this.username = username;
+		this.dateCreated = dateCreated;
+		this.uuid = uuid;
+		this.observations = observations;
+	}
+
 	public Integer getEncounterId() {
 		return encounterId;
 	}

@@ -2,24 +2,39 @@ package com.ihsinformatics.gfatmnotifications.common.model;
 
 public class Contact {
 
+	private Integer personId;
 	private Integer locationId;
 	private String locationName;
-	private String emailAdress;
 	private String primaryContact;
 	private String secondaryContact;
+	private String emailAdress;
 
-	/**
-	 * @return the emailAdress
-	 */
-	public String getEmailAdress() {
-		return emailAdress;
+	public Contact() {
+	}
+
+	public Contact(Integer personId, Integer locationId, String locationName, String primaryContact,
+			String secondaryContact, String emailAdress) {
+		super();
+		this.personId = personId;
+		this.locationId = locationId;
+		this.locationName = locationName;
+		this.primaryContact = primaryContact;
+		this.secondaryContact = secondaryContact;
+		this.emailAdress = emailAdress;
 	}
 
 	/**
-	 * @param emailAdress the emailAdress to set
+	 * @return the personId
 	 */
-	public void setEmailAdress(String emailAdress) {
-		this.emailAdress = emailAdress;
+	public Integer getPersonId() {
+		return personId;
+	}
+
+	/**
+	 * @param personId the personId to set
+	 */
+	public void setPersonId(Integer personId) {
+		this.personId = personId;
 	}
 
 	/**
@@ -34,6 +49,20 @@ public class Contact {
 	 */
 	public void setLocationId(Integer locationId) {
 		this.locationId = locationId;
+	}
+
+	/**
+	 * @return the locationName
+	 */
+	public String getLocationName() {
+		return locationName;
+	}
+
+	/**
+	 * @param locationName the locationName to set
+	 */
+	public void setLocationName(String locationName) {
+		this.locationName = locationName;
 	}
 
 	/**
@@ -65,17 +94,17 @@ public class Contact {
 	}
 
 	/**
-	 * @return the locationName
+	 * @return the emailAdress
 	 */
-	public String getLocationName() {
-		return locationName;
+	public String getEmailAdress() {
+		return emailAdress;
 	}
 
 	/**
-	 * @param locationName the locationName to set
+	 * @param emailAdress the emailAdress to set
 	 */
-	public void setLocationName(String locationName) {
-		this.locationName = locationName;
+	public void setEmailAdress(String emailAdress) {
+		this.emailAdress = emailAdress;
 	}
 
 }

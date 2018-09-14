@@ -4,17 +4,11 @@ import java.util.Date;
 
 import com.ihsinformatics.util.DateTimeUtil;
 
-public class Obs {
-	/**
-	 * this field add according to needs .. obs_group_id accession_number
-	 * value_group_id value_coded_name_id value_drug value_datetime value_numeric
-	 * value_modifier value_text value_complex comments creator date_created voided
-	 * voided_by date_voided void_reason uuid previous_version
-	 * form_namespace_and_path
-	 */
+public class Observation {
 	private int obsId;
-	private Integer personId;
+	private Integer patientId;
 	private Integer conceptId;
+	private String conceptName;
 	private Integer encounterId;
 	private String orderId;
 	private long obsDatetime;
@@ -34,12 +28,12 @@ public class Obs {
 		this.obsId = obsId;
 	}
 
-	public Integer getPersonId() {
-		return personId;
+	public Integer getPatientId() {
+		return patientId;
 	}
 
-	public void setPersonId(Integer personId) {
-		this.personId = personId;
+	public void setPatientId(Integer patientId) {
+		this.patientId = patientId;
 	}
 
 	public Integer getConceptId() {
@@ -48,6 +42,14 @@ public class Obs {
 
 	public void setConceptId(Integer conceptId) {
 		this.conceptId = conceptId;
+	}
+
+	public String getConceptName() {
+		return conceptName;
+	}
+
+	public void setConceptName(String conceptName) {
+		this.conceptName = conceptName;
 	}
 
 	public Integer getEncounterId() {

@@ -19,6 +19,7 @@ package com.ihsinformatics.gfatmnotifications.common.model;
 public class Patient {
 
 	private Integer personId;
+	private String patientIdentifier;
 	private String givenName;
 	private String lastName;
 	private String gender;
@@ -48,17 +49,66 @@ public class Patient {
 	private String patientType;
 	private Boolean dead;
 	private String creator;
-	private long dateCreated;
 	private String address1;
 	private String address2;
 	private String district;
 	private String cityVillage;
 	private String country;
 	private String landmark;
-	private String patientIdentifier;
+	private long dateCreated;
 	private String uuid;
 
 	public Patient() {
+	}
+
+	public Patient(Integer personId, String patientIdentifier, String givenName, String lastName, String gender,
+			String birthdate, String estimated, String birthplace, String maritalStatus, String healthCenter,
+			String healthDistrict, String motherName, String primaryContact, String primaryContactOwner,
+			String secondaryContact, String secondaryContactOwner, String ethnicity, String educationLevel,
+			String employmentStatus, String occupation, String motherTongue, String incomeClass, String nationalID,
+			String nationalIDOwner, String guardianName, String treatmentSupporter, String otherIdentificationNumber,
+			String transgender, String patientType, Boolean dead, String creator, String address1, String address2,
+			String district, String cityVillage, String country, String landmark, long dateCreated, String uuid) {
+		super();
+		this.personId = personId;
+		this.patientIdentifier = patientIdentifier;
+		this.givenName = givenName;
+		this.lastName = lastName;
+		this.gender = gender;
+		this.birthdate = birthdate;
+		this.estimated = estimated;
+		this.birthplace = birthplace;
+		this.maritalStatus = maritalStatus;
+		this.healthCenter = healthCenter;
+		this.healthDistrict = healthDistrict;
+		this.motherName = motherName;
+		this.primaryContact = primaryContact;
+		this.primaryContactOwner = primaryContactOwner;
+		this.secondaryContact = secondaryContact;
+		this.secondaryContactOwner = secondaryContactOwner;
+		this.ethnicity = ethnicity;
+		this.educationLevel = educationLevel;
+		this.employmentStatus = employmentStatus;
+		this.occupation = occupation;
+		this.motherTongue = motherTongue;
+		this.incomeClass = incomeClass;
+		this.nationalID = nationalID;
+		this.nationalIDOwner = nationalIDOwner;
+		this.guardianName = guardianName;
+		this.treatmentSupporter = treatmentSupporter;
+		this.otherIdentificationNumber = otherIdentificationNumber;
+		this.transgender = transgender;
+		this.patientType = patientType;
+		this.dead = dead;
+		this.creator = creator;
+		this.address1 = address1;
+		this.address2 = address2;
+		this.district = district;
+		this.cityVillage = cityVillage;
+		this.country = country;
+		this.landmark = landmark;
+		this.dateCreated = dateCreated;
+		this.uuid = uuid;
 	}
 
 	/**
@@ -607,4 +657,10 @@ public class Patient {
 		this.uuid = uuid;
 	}
 
+	/**
+	 * @return the name of patient
+	 */
+	public String getFullName() {
+		return (givenName == null ? "" : givenName) + " " + (lastName == null ? "" : lastName);
+	}
 }

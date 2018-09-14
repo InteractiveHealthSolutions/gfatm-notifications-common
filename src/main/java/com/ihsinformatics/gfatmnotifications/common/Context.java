@@ -21,6 +21,7 @@ import com.google.gson.reflect.TypeToken;
 import com.ihsinformatics.gfatmnotifications.common.model.Contact;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
+import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.util.DateDeserializer;
@@ -89,7 +90,7 @@ public class Context {
 			loadUsers();
 		}
 		if (userContacts == null) {
-			loadUserContacts();
+			loadContacts();
 		}
 		if (locations == null) {
 			loadLocations();
@@ -273,10 +274,10 @@ public class Context {
 	/**
 	 * Fetch all contacts from DB and store locally
 	 */
-	public static void loadUserContacts() {
+	public static void loadContacts() {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select u.user_id, u.person_id as personId, em.value as emailAddress, pc.value as primaryContact, sc.value as secondaryContact, la.location_id as locationId, l.name as locationName from users as u ");
+				"select u.person_id as personId, la.location_id as locationId, l.name as locationName, pc.value as primaryContact, sc.value as secondaryContact, em.value as emailAddress from users as u ");
 		query.append(
 				"left outer join location_attribute as la on la.attribute_type_id = 16 and la.value_reference = u.system_id ");
 		query.append("left outer join location as l on l.location_id = la.location_id ");
@@ -447,7 +448,6 @@ public class Context {
 	}
 
 	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId) {
-
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.description as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
@@ -476,29 +476,19 @@ public class Context {
 		return encounter.get(0);
 	}
 
-	public static Map<String, Object> getEncounterObservations(Encounter encounter) {
-		Map<String, Object> observations;
+	public static List<Observation> getEncounterObservations(Encounter encounter) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select q.name as obs, concat(ifnull(a.name, ''), ifnull(o.value_datetime, ''), ifnull(o.value_text, ''), ifnull(o.value_numeric, '')) as value from obs as o ");
+				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
+		query.append("inner join encounter as e on e.encounter_id = o.encounter_id ");
 		query.append(
-				"left outer join concept_name as q on q.concept_id = o.concept_id and q.locale = 'en' and q.concept_name_type = 'SHORT' and q.voided = 0 ");
-		query.append(
-				"left outer join concept_name as a on a.concept_id = o.value_coded and a.locale = 'en' and a.locale_preferred = 1 and a.voided = 0 ");
+				"inner join concept_name as cn on cn.concept_id = o.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());
 
-		Object[][] data = Context.getLocalDb().getTableData(query.toString());
-		observations = new HashMap<String, Object>();
-		for (Object[] row : data) {
-			int k = 0;
-			try {
-				String observation = convertToString(row[k++]);
-				String value = convertToString(row[k++]);
-				observations.put(observation, value);
-			} catch (Exception ex) {
-				log.severe(ex.getMessage());
-			}
-		}
+		String jsonString = queryToJson(query.toString());
+		Type type = new TypeToken<List<Observation>>() {
+		}.getType();
+		List<Observation> observations = builder.create().fromJson(jsonString, type);
 		return observations;
 	}
 
@@ -568,7 +558,7 @@ public class Context {
 
 	public static Contact getContactByLocationName(String locationName) {
 		if (getUserContacts().isEmpty()) {
-			loadUserContacts();
+			loadContacts();
 		}
 		for (Contact email : getUserContacts()) {
 			if (email.getLocationName().equals(locationName)) {
@@ -592,7 +582,7 @@ public class Context {
 
 	public static Contact getUserContactByLocationId(int locationId) {
 		if (getUserContacts().isEmpty()) {
-			loadUserContacts();
+			loadContacts();
 		}
 		for (Contact contact : getUserContacts()) {
 			if (contact.getLocationId() == locationId) {

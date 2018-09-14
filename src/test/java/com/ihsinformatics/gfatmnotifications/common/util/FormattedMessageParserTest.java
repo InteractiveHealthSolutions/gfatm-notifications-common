@@ -12,9 +12,12 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 package com.ihsinformatics.gfatmnotifications.common.util;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,6 +27,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
+import com.ihsinformatics.gfatmnotifications.common.model.Location;
+import com.ihsinformatics.gfatmnotifications.common.model.Patient;
+import com.ihsinformatics.gfatmnotifications.common.model.User;
 
 /**
  * @author owais.hussain@ihsinformatics.com
@@ -32,7 +39,15 @@ import com.ihsinformatics.gfatmnotifications.common.Context;
 public class FormattedMessageParserTest {
 
 	private FormattedMessageParser parser;
-	private String message = "Assalamu alaekum janab {patient.fullName}. Aao TB Mitao ki team ap ko yaad dilana chahti hai ke ap ko {encounter[PET-Treatment Initiation].observations[RETURN VISIT DATE].valueDatetime} ke din {encounter.encounterLocation} pe Doctor ke paas moainay aur dawa hasil karne ke liyey ana hai. Is mutaliq mazeed maloomat ke liyey helpline 080011982 pe rabta karain";
+	private String message = "Assalamu alaekum janab {patient.getFullName}. "
+			+ "Aao TB Mitao ki team ap ko yaad dilana chahti hai ke ap ko "
+			+ "$select o.value_datetime from obs as o where encounter_id = (select max(encounter_id) from encounter as e where e.encounter_type = 7 and e.voided = 0) and o.value_datetime is not null and o.concept_id = 5096 and o.voided = 0 and o.person_id = {patient.personId}$ "
+			+ "ke din {encounter.encounterLocation} pe Doctor ke paas moainay aur dawa hasil karne ke liyey ana hai. "
+			+ "Is mutaliq mazeed maloomat ke liyey helpline $select helpline from important_contacts$ pe rabta karain";
+	private Patient testPatient;
+	private User testUser;
+	private Encounter testEncounter;
+	private Location testLocation;
 
 	@BeforeClass
 	public static void initialize() throws Exception {
@@ -45,6 +60,26 @@ public class FormattedMessageParserTest {
 	@Before
 	public void setUp() throws Exception {
 		parser = new FormattedMessageParser(Decision.FAIL);
+		testPatient = new Patient();
+		testPatient.setPersonId(2);
+		testPatient.setGivenName("Test");
+		testPatient.setLastName("Patient");
+		testPatient.setGender("M");
+		testPatient.setPrimaryContact("03452345345");
+
+		testUser = new User();
+		testUser.setUserId(1);
+		testUser.setPersonId(1);
+		testUser.setUsername("test.user");
+		testUser.setGender("M");
+		testUser.setGivenName("Test");
+		testUser.setLastName("User");
+		testUser.setSystemId("1-1");
+		testUser.setUserRole("Tester");
+
+		testLocation = new Location();
+
+		testEncounter = new Encounter();
 	}
 
 	/**
@@ -60,7 +95,82 @@ public class FormattedMessageParserTest {
 	 */
 	@Test
 	public void testParseFormattedMessage() {
-		fail("Not yet implemented"); // TODO
+		try {
+//"{patient.getFullName}. Aao TB Mitao {encounter[encounterType=PET-Treatment Initiation].observations[concept=RETURN VISIT DATE].valueDatetime} ke din {encounter.encounterLocation} pe Doctor ke paas moainay aur dawa hasil karne ke liyey ana hai";
+			parser.parseFormattedMessage(message, testPatient, testUser, testEncounter, testLocation);
+		} catch (ParseException e) {
+			fail(e.getMessage());
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getMatchingClassObject(java.lang.String, java.lang.Object[])}.
+	 */
+	@Test
+	public void testGetMatchingClassObject() {
+		try {
+			Object object = parser.getMatchingClassObject("Patient",
+					new Object[] { testPatient, testUser, testEncounter, testLocation });
+			assertSame(object, testPatient);
+			object = parser.getMatchingClassObject("User", new Object[] { testUser, testEncounter, testLocation });
+			assertSame(object, testUser);
+			object = parser.getMatchingClassObject("Encounter", new Object[] { testEncounter, testLocation });
+			assertSame(object, testEncounter);
+		} catch (ClassNotFoundException e) {
+			fail(e.getMessage());
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
+	 */
+	@Test
+	public void testGetPropertyValue_Field() {
+		try {
+			assertSame(parser.getPropertyValue(testPatient, "givenName"), testPatient.getGivenName());
+			assertSame(parser.getPropertyValue(testPatient, "personId"), testPatient.getPersonId());
+			assertSame(parser.getPropertyValue(testPatient, "address2"), testPatient.getAddress2());
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
+	 */
+	@Test(expected = NoSuchMethodException.class)
+	public void shouldThrowExceptionOnGetPropertyValue_Field()
+			throws SecurityException, IllegalArgumentException, ReflectiveOperationException {
+		parser.getPropertyValue(testPatient, "nonExistingField");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
+	 */
+	@Test
+	public void testGetPropertyValue_Method() {
+		try {
+			String actual = parser.getPropertyValue(testPatient, "getFullName").toString();
+			String expected = testPatient.getFullName();
+			assertTrue(actual.equals(expected));
+			assertNull(parser.getPropertyValue(testPatient, "getBirthplace"));
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
+	 */
+	@Test(expected = NoSuchMethodException.class)
+	public void shouldThrowExceptionOnGetPropertyValue_Method()
+			throws SecurityException, IllegalArgumentException, ReflectiveOperationException {
+		parser.getPropertyValue(testPatient, "getNonExistingMethod");
 	}
 
 	/**

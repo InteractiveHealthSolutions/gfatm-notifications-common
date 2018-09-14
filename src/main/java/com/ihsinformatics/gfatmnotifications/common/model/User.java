@@ -28,8 +28,6 @@ public class User {
 	private String gender;
 	private String healthCenter;
 	private String healthDistrict;
-	private String primaryContact;
-	private String secondaryContact;
 	private String educationLevel;
 	private String employmentStatus;
 	private String occupation;
@@ -42,9 +40,44 @@ public class User {
 	private String country;
 	private String landmark;
 	private String intervention;
+	private String userRole;
 	private Date dateCreated;
 	private String uuid;
-	private String userRole;
+
+	public User() {
+	}
+
+	public User(Integer userId, Integer personId, String systemId, String username, String givenName, String lastName,
+			String gender, String healthCenter, String healthDistrict, String educationLevel, String employmentStatus,
+			String occupation, String motherTongue, String nationalID, String address1, String address2,
+			String district, String cityVillage, String country, String landmark, String intervention, String userRole,
+			Date dateCreated, String uuid) {
+		super();
+		this.userId = userId;
+		this.personId = personId;
+		this.systemId = systemId;
+		this.username = username;
+		this.givenName = givenName;
+		this.lastName = lastName;
+		this.gender = gender;
+		this.healthCenter = healthCenter;
+		this.healthDistrict = healthDistrict;
+		this.educationLevel = educationLevel;
+		this.employmentStatus = employmentStatus;
+		this.occupation = occupation;
+		this.motherTongue = motherTongue;
+		this.nationalID = nationalID;
+		this.address1 = address1;
+		this.address2 = address2;
+		this.district = district;
+		this.cityVillage = cityVillage;
+		this.country = country;
+		this.landmark = landmark;
+		this.intervention = intervention;
+		this.userRole = userRole;
+		this.dateCreated = dateCreated;
+		this.uuid = uuid;
+	}
 
 	/**
 	 * @return the userId
@@ -170,34 +203,6 @@ public class User {
 	 */
 	public void setHealthDistrict(String healthDistrict) {
 		this.healthDistrict = healthDistrict;
-	}
-
-	/**
-	 * @return the primaryContact
-	 */
-	public String getPrimaryContact() {
-		return primaryContact;
-	}
-
-	/**
-	 * @param primaryContact the primaryContact to set
-	 */
-	public void setPrimaryContact(String primaryContact) {
-		this.primaryContact = primaryContact;
-	}
-
-	/**
-	 * @return the secondaryContact
-	 */
-	public String getSecondaryContact() {
-		return secondaryContact;
-	}
-
-	/**
-	 * @param secondaryContact the secondaryContact to set
-	 */
-	public void setSecondaryContact(String secondaryContact) {
-		this.secondaryContact = secondaryContact;
 	}
 
 	/**
@@ -382,6 +387,14 @@ public class User {
 		this.dateCreated = dateCreated;
 	}
 
+	public String getUserRole() {
+		return userRole;
+	}
+
+	public void setUserRole(String userRole) {
+		this.userRole = userRole;
+	}
+
 	/**
 	 * @return the uuid
 	 */
@@ -396,12 +409,7 @@ public class User {
 		this.uuid = uuid;
 	}
 
-	public String getUserRole() {
-		return userRole;
+	public String getFullName() {
+		return (givenName == null ? "" : givenName) + " " + (lastName == null ? "" : lastName);
 	}
-
-	public void setUserRole(String userRole) {
-		this.userRole = userRole;
-	}
-
 }

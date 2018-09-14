@@ -11,18 +11,21 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 */
 package com.ihsinformatics.gfatmnotifications.common.util;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
-import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
-import com.ihsinformatics.gfatmnotifications.common.model.Location;
-import com.ihsinformatics.gfatmnotifications.common.model.Patient;
-import com.ihsinformatics.gfatmnotifications.common.model.User;
+import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
+import com.ihsinformatics.util.ClassLoaderUtil;
+import com.ihsinformatics.util.CommandType;
 
 /**
  * @author owais.hussain@ihsinformatics.com
@@ -53,37 +56,117 @@ public class FormattedMessageParser {
 		if (!areParenthesesBalanced(message)) {
 			throw new ParseException("Parantheses are not balanced in the message.", 0);
 		}
-		Patient patient = null;
-		Location location = null;
-		Encounter encounter = null;
-		User user = null;
-		// Detect the entities that have been passed
-		for (Object object : objects) {
-			if (object instanceof Patient) {
-				patient = (Patient) object;
-			} else if (object instanceof Location) {
-				location = (Location) object;
-			} else if (object instanceof Encounter) {
-				encounter = (Encounter) object;
-			} else if (object instanceof Encounter) {
-				user = (User) object;
-			}
-		}
-
 		// Tokenize the message
 		List<String> tokens = tokenizeMessage(message);
-
+		StringBuilder output = new StringBuilder();
 		for (String token : tokens) {
-
+			// Detect the entity.property tokens
+			if (isEntityValuePair(token)) {
+				String[] pair = token.split("\\.", 2);
+				String entityName = pair[0];
+				String propertyName = pair[1];
+				// Match the key with objects passed
+				try {
+					// Precaution! Turn first character into capital
+					entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
+							+ entityName.substring(1, entityName.length());
+					Object object = getMatchingClassObject(entityName, objects);
+					output.append(getPropertyValue(object, propertyName));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				output.append(token);
+			}
 		}
+		// Detect SQL queries
+		List<String> queries = detectSqlQueries(output.toString());
+		for (String query : queries) {
+			try {
+				Object result = Context.getLocalDb().runCommandWithException(CommandType.SELECT, query);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return output.toString();
+	}
 
-		// Assalamu alaekum janab {patient.fullName}. Aao TB Mitao ki team ap ko yaad
-		// dilana chahti hai ke ap ko {encounter[PET-Treatment
-		// Initiation].observations[RETURN VISIT DATE].valueDatetime} ke din
-		// {encounter.encounterLocation} pe Doctor ke paas moainay aur dawa hasil karne
-		// ke liyey ana hai. Is mutaliq mazeed maloomat ke liyey helpline 080011982 pe
-		// rabta karain. Shukriya
+	/**
+	 * This piece of intelligent code detects all SQL queries quoted within $ sign
+	 * inside the given parameter
+	 * 
+	 * @param text
+	 * @return
+	 */
+	public List<String> detectSqlQueries(String text) {
+		List<String> queries = new ArrayList<String>();
+		Pattern p = Pattern.compile("\\$(.*?)\\$");
+		Matcher m = p.matcher(text.toString());
+		while (m.find()) {
+			queries.add(m.group(1));
+		}
+		return queries;
+	}
+
+	/**
+	 * Searches for class by name and returns the first object which belongs to
+	 * found class. Returns null if no object is instance of found class
+	 * 
+	 * @param className
+	 * @param objects
+	 * @return
+	 * @throws ClassNotFoundException
+	 */
+	public Object getMatchingClassObject(String className, Object[] objects) throws ClassNotFoundException {
+		Class<?> clazz = ClassLoaderUtil.loadClass(className, BaseEntity.class.getPackage().getName(), this.getClass());
+		for (Object object : objects) {
+			if (clazz.isInstance(object)) {
+				return object;
+			}
+		}
 		return null;
+	}
+
+	/**
+	 * Searches for field or method in given object and returns the corresponding
+	 * value of that field in given object
+	 * 
+	 * @param object
+	 * @param fieldOrMethod
+	 * @return
+	 * @throws SecurityException
+	 * @throws IllegalArgumentException
+	 */
+	public Object getPropertyValue(Object object, String fieldOrMethod)
+			throws SecurityException, IllegalArgumentException, ReflectiveOperationException {
+		Object value = null;
+		try {
+			Field field = object.getClass().getDeclaredField(fieldOrMethod);
+			boolean accessible = field.isAccessible();
+			field.setAccessible(true);
+			value = field.get(object);
+			field.setAccessible(accessible);
+		} catch (NoSuchFieldException e) {
+			// In case the field doesn't exist, try to find method
+			Class<?> params[] = new Class[0];
+			Method method = object.getClass().getDeclaredMethod(fieldOrMethod, params);
+			boolean accessible = method.isAccessible();
+			method.setAccessible(true);
+			value = method.invoke(object, new Object[] {});
+			method.setAccessible(accessible);
+		}
+		return value;
+	}
+
+	/**
+	 * Returns true of the parameter token is in entity.value format (e.g.
+	 * patient.lastName)
+	 * 
+	 * @param token
+	 * @return
+	 */
+	public boolean isEntityValuePair(String token) {
+		return token.matches("^[\\w]+\\.[\\w]+$");
 	}
 
 	/**
@@ -97,7 +180,7 @@ public class FormattedMessageParser {
 		char[] charArray = string.toCharArray();
 		StringBuilder token = new StringBuilder();
 		for (char c : charArray) {
-			if (isOpeningParenthesis(c) || isClosingParenthesis(c)) {
+			if (isTokenizerParenthesis(c)) {
 				tokens.add(token.toString());
 				token = new StringBuilder();
 			} else {
@@ -108,12 +191,8 @@ public class FormattedMessageParser {
 		return tokens;
 	}
 
-	private boolean isOpeningParenthesis(char c) {
-		return c == '{' || c == '[' || c == '(';
-	}
-
-	private boolean isClosingParenthesis(char c) {
-		return c == ')' || c == ']' || c == '}';
+	private boolean isTokenizerParenthesis(char c) {
+		return c == '{' || c == '[' || c == ']' || c == '}';
 	}
 
 	/**

@@ -27,7 +27,6 @@ public class Location implements Serializable {
 	private Integer locationId;
 	private String name;
 	private Integer parentId;
-	private String uuid;
 	private Integer fast;
 	private Integer pet;
 	private Integer childhoodTb;
@@ -47,6 +46,36 @@ public class Location implements Serializable {
 	private String country;
 	private long dateCreated;
 	private Boolean status;
+	private String uuid;
+
+	public Location() {
+	}
+
+	public Location(Integer locationId, String name, String description, Integer parentId, Integer fast, Integer pet,
+			Integer childhoodTb, Integer comorbidities, Integer pmdt, String primaryContact, String primaryContactName,
+			String locationType, String address1, String cityVillage, String stateProvince, String country,
+			long dateCreated, Boolean status, String uuid) {
+		super();
+		this.locationId = locationId;
+		this.name = name;
+		this.parentId = parentId;
+		this.fast = fast;
+		this.pet = pet;
+		this.childhoodTb = childhoodTb;
+		this.comorbidities = comorbidities;
+		this.pmdt = pmdt;
+		this.primaryContact = primaryContact;
+		this.primaryContactName = primaryContactName;
+		this.locationType = locationType;
+		this.address1 = address1;
+		this.cityVillage = cityVillage;
+		this.stateProvince = stateProvince;
+		this.description = description;
+		this.country = country;
+		this.dateCreated = dateCreated;
+		this.status = status;
+		this.uuid = uuid;
+	}
 
 	/**
 	 * @return the locationId
