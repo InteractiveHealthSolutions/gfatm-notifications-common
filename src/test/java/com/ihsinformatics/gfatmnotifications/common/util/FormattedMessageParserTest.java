@@ -43,7 +43,8 @@ public class FormattedMessageParserTest {
 			+ "Aao TB Mitao ki team ap ko yaad dilana chahti hai ke ap ko "
 			+ "$select o.value_datetime from obs as o where encounter_id = (select max(encounter_id) from encounter as e where e.encounter_type = 7 and e.voided = 0) and o.value_datetime is not null and o.concept_id = 5096 and o.voided = 0 and o.person_id = {patient.personId}$ "
 			+ "ke din {encounter.encounterLocation} pe Doctor ke paas moainay aur dawa hasil karne ke liyey ana hai. "
-			+ "Is mutaliq mazeed maloomat ke liyey helpline $select helpline from important_contacts$ pe rabta karain";
+			+ "Is mutaliq mazeed maloomat ke liyey $select username from users where user_id = 2$ se rabta karain";
+	private String queriedText = "The user at userId 2 is $select username from users where user_id = 2$. The location at location_id 1 is $select name from location where location_id = 1$. You-know-who is nickname for $select given_name from person_name where person_id = -999$ ";
 	private Patient testPatient;
 	private User testUser;
 	private Encounter testEncounter;
@@ -95,9 +96,14 @@ public class FormattedMessageParserTest {
 	 */
 	@Test
 	public void testParseFormattedMessage() {
+		String expected = "Assalamu alaekum janab " + testPatient.getFullName() + ". "
+				+ "Aao TB Mitao ki team ap ko yaad dilana chahti hai ke ap ko " + "<MISSING TEXT>" + " ke din "
+				+ testLocation.getName() + " pe Doctor ke paas moainay aur dawa hasil karne ke liyey ana hai. "
+				+ "Is mutaliq mazeed maloomat ke liyey daemon se rabta karain";
 		try {
-//"{patient.getFullName}. Aao TB Mitao {encounter[encounterType=PET-Treatment Initiation].observations[concept=RETURN VISIT DATE].valueDatetime} ke din {encounter.encounterLocation} pe Doctor ke paas moainay aur dawa hasil karne ke liyey ana hai";
-			parser.parseFormattedMessage(message, testPatient, testUser, testEncounter, testLocation);
+			String formattedMessage = parser.parseFormattedMessage(message, testPatient, testUser, testEncounter,
+					testLocation);
+			assertTrue(formattedMessage.equals(expected));
 		} catch (ParseException e) {
 			fail(e.getMessage());
 		}
@@ -184,12 +190,12 @@ public class FormattedMessageParserTest {
 		assertTrue(tokens.contains("One a token, "));
 		assertTrue(tokens.contains("two"));
 		assertTrue(tokens.contains("three"));
-		assertTrue(tokens.contains(": five"));
+		assertTrue(tokens.contains("a (token): five"));
 		StringBuilder merged = new StringBuilder();
 		for (String token : tokens) {
 			merged.append(token);
 		}
-		assertTrue(merged.toString().equals("One a token, two a token; threea token; four a token: five a token."));
+		assertTrue(merged.toString().equals("One a token, two a token; threea token; (four) a (token): five a token."));
 	}
 
 	/**
@@ -211,5 +217,14 @@ public class FormattedMessageParserTest {
 		}
 		assertFalse(parser.areParenthesesBalanced("11{55[66(5)44}33"));
 		assertFalse(parser.areParenthesesBalanced(message + "]"));
+	}
+
+	@Test
+	public void testParseSqlQueries() {
+		String text = parser.parseSqlQueries(queriedText);
+		assertFalse(text.contains("$"));
+		assertTrue(text.contains("<MISSING TEXT>"));
+		assertTrue(text.contains("daemon"));
+		assertTrue(text.contains("Unknown Location"));
 	}
 }

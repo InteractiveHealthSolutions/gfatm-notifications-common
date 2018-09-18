@@ -33,12 +33,10 @@ import com.ihsinformatics.util.CommandType;
  */
 public class FormattedMessageParser {
 
-	private String dateFormat;
 	private Decision onNullDecision;
 
 	public FormattedMessageParser(Decision onNull) {
 		this.setOnNullDecision(onNull);
-		dateFormat = Context.getProps().getProperty("display.date.format");
 	}
 
 	public Decision getOnNullDecision() {
@@ -79,33 +77,39 @@ public class FormattedMessageParser {
 				output.append(token);
 			}
 		}
-		// Detect SQL queries
-		List<String> queries = detectSqlQueries(output.toString());
-		for (String query : queries) {
-			try {
-				Object result = Context.getLocalDb().runCommandWithException(CommandType.SELECT, query);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return output.toString();
+		// Detect SQL queries and replace result inside the text
+		String result = parseSqlQueries(output.toString());
+		return result;
 	}
 
 	/**
 	 * This piece of intelligent code detects all SQL queries quoted within $ sign
-	 * inside the given parameter
+	 * inside the given parameter text and replaces them with query results. This
+	 * method does not throw any exception, if a query fails or retrieves no result,
+	 * then a placeholder <MISSING TEXT> is replaced with the query instead
 	 * 
 	 * @param text
 	 * @return
 	 */
-	public List<String> detectSqlQueries(String text) {
+	public String parseSqlQueries(String text) {
 		List<String> queries = new ArrayList<String>();
 		Pattern p = Pattern.compile("\\$(.*?)\\$");
 		Matcher m = p.matcher(text.toString());
+		// First, detect all queries
 		while (m.find()) {
 			queries.add(m.group(1));
 		}
-		return queries;
+		// Set a placeholder for results
+		text = m.replaceAll("<RESULT>");
+		// Execute queries and replace the first occurrence of placeholder with result
+		for (String query : queries) {
+			Object result = Context.getLocalDb().runCommand(CommandType.SELECT, query);
+			if (result == null) {
+				result = "<MISSING TEXT>";
+			}
+			text = text.replaceFirst("<RESULT>", result.toString());
+		}
+		return text;
 	}
 
 	/**

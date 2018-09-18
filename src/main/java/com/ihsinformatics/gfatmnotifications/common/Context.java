@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -38,7 +40,7 @@ public class Context {
 
 	private static final Logger log = Logger.getLogger(Class.class.getName());
 	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
-	public static final String PROJECT_NAME = "GFATM-Notifications";
+	public static final String PROJECT_NAME = "Aao-TB-Mitao Notifications";
 
 	private static Properties props;
 	private static DatabaseUtil dbUtil;
@@ -125,6 +127,73 @@ public class Context {
 	 */
 	public static void setProps(Properties props) {
 		Context.props = props;
+	}
+
+	/**
+	 * Returns String value of given key in properties file
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public static String getStringProperty(String key) {
+		return props.getProperty(key);
+	}
+
+	/**
+	 * Returns Integer value of given key in properties file
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public static Integer getIntegerProperty(String key) {
+		try {
+			return Integer.parseInt(props.getProperty(key));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Returns Boolean value of given key in properties file
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public static Boolean getBooleanProperty(String key) {
+		try {
+			return Boolean.parseBoolean(props.getProperty(key));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Returns Double value of given key in properties file
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public static Double getDoubleProperty(String key) {
+		try {
+			return Double.parseDouble(props.getProperty(key));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Returns array of String values of given key in properties file, split by the
+	 * split character defined. If splitBy is null, the list is split by comma
+	 * 
+	 * @param key
+	 * @param splitBy
+	 * @return
+	 */
+	public static String[] getCommaSeparatedValueProperty(String key, String splitBy) {
+		if (splitBy == null) {
+			splitBy = ",";
+		}
+		return props.getProperty(key).split(splitBy);
 	}
 
 	/**
@@ -613,6 +682,21 @@ public class Context {
 	 */
 	public static void setEncounterTypes(Map<Integer, String> encounterTypes) {
 		Context.encounterTypes = encounterTypes;
+	}
+
+	/**
+	 * Returns generated ID of encounter type by name
+	 * 
+	 * @param encounterType
+	 * @return
+	 */
+	public static Integer getEncounterTypeId(String encounterType) {
+		for (Entry<Integer, String> entry : encounterTypes.entrySet()) {
+			if (Objects.equals(encounterType, entry.getValue())) {
+				return entry.getKey();
+			}
+		}
+		return null;
 	}
 
 	/**
