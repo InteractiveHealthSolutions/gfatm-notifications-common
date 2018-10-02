@@ -1,8 +1,11 @@
 package com.ihsinformatics.gfatmnotifications.common;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.net.URL;
+import java.nio.file.DirectoryIteratorException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -25,6 +28,7 @@ import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
+import com.ihsinformatics.gfatmnotifications.common.model.RuleBook;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.util.DateDeserializer;
 import com.ihsinformatics.gfatmnotifications.common.util.DateSerializer;
@@ -41,10 +45,14 @@ public class Context {
 	private static final Logger log = Logger.getLogger(Class.class.getName());
 	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
 	public static final String PROJECT_NAME = "Aao-TB-Mitao Notifications";
+	private static final String RULE_BOOK_FILE = "rules/RuleBook.xlsx";
 
 	private static Properties props;
 	private static DatabaseUtil dbUtil;
 	private static GsonBuilder builder;
+
+	// Collection of files in the rules directory
+	private static RuleBook ruleBook;
 
 	private static List<User> users;
 	private static List<Contact> userContacts;
@@ -99,6 +107,9 @@ public class Context {
 		}
 		if (patients == null) {
 			loadPatients();
+		}
+		if (ruleBook == null) {
+			loadRuleBook();
 		}
 	}
 
@@ -236,6 +247,36 @@ public class Context {
 
 	public static String convertToString(Object obj) {
 		return obj == null ? null : obj.toString();
+	}
+
+	/**
+	 * Loads all readable files with extension xls or xlsx from rules directory into
+	 * a Set
+	 * 
+	 * @throws DirectoryIteratorException
+	 * @throws IOException
+	 */
+	public static void loadRuleBook() throws IOException {
+		URL url = ClassLoaderUtil.getResource(RULE_BOOK_FILE, Context.class);
+		File ruleBookFile = new File(url.getFile());
+		if (ruleBookFile.isDirectory() || !ruleBookFile.canRead()) {
+			throw new DirectoryIteratorException(new IOException("Rule file is either a directory or inaccessible."));
+		}
+		Context.ruleBook = new RuleBook(ruleBookFile);
+	}
+
+	/**
+	 * @return
+	 */
+	public static RuleBook getRuleBook() {
+		if (ruleBook == null) {
+			try {
+				Context.loadRuleBook();
+			} catch (IOException e) {
+				log.severe("Exception while fetching RuleBook " + e.getMessage());
+			}
+		}
+		return ruleBook;
 	}
 
 	/**
@@ -441,7 +482,7 @@ public class Context {
 	public static Encounter getEncounter(int encounterId) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.description as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
+				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
 		query.append("inner join encounter_type as et on et.encounter_type_id = e.encounter_type ");
 		query.append("inner join patient as p on p.patient_id = e.patient_id ");
 		query.append("inner join patient_identifier as pi on pi.patient_id = p.patient_id and pi.identifier_type = 3 ");
@@ -491,7 +532,7 @@ public class Context {
 		}
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.description as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
+				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
 		query.append("inner join encounter_type as et on et.encounter_type_id = e.encounter_type ");
 		query.append("inner join patient as p on p.patient_id = e.patient_id ");
 		query.append("inner join patient_identifier as pi on pi.patient_id = p.patient_id and pi.identifier_type = 3 ");
@@ -519,7 +560,7 @@ public class Context {
 	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.description as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
+				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
 		query.append("inner join encounter_type as et on et.encounter_type_id = e.encounter_type ");
 		query.append("inner join patient as p on p.patient_id = e.patient_id ");
 		query.append("inner join patient_identifier as pi on pi.patient_id = p.patient_id and pi.identifier_type = 3 ");
@@ -548,10 +589,12 @@ public class Context {
 	public static List<Observation> getEncounterObservations(Encounter encounter) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
+				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, vn.name as valueCodedName, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
 		query.append("inner join encounter as e on e.encounter_id = o.encounter_id ");
 		query.append(
 				"inner join concept_name as cn on cn.concept_id = o.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
+		query.append(
+				"inner join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());
 
 		String jsonString = queryToJson(query.toString());

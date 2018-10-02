@@ -107,4 +107,14 @@ public class Contact {
 		this.emailAdress = emailAdress;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return personId + ", " + locationId + ", " + locationName + ", " + primaryContact + ", " + secondaryContact
+				+ ", " + emailAdress;
+	}
 }

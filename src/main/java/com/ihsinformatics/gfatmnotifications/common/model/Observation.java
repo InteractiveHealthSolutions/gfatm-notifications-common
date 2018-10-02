@@ -16,6 +16,7 @@ public class Observation {
 	private Double valueNumeric;
 	private Boolean valueBoolean;
 	private Integer valueCoded;
+	private String valueCodedName;
 	private Long valueDatetime;
 	private String valueText;
 	private String uuid;
@@ -116,6 +117,14 @@ public class Observation {
 		this.valueCoded = valueCoded;
 	}
 
+	public String getValueCodedName() {
+		return valueCodedName;
+	}
+
+	public void setValueCodedName(String valueCodedName) {
+		this.valueCodedName = valueCodedName;
+	}
+
 	public Long getValueDatetime() {
 		return valueDatetime;
 	}
@@ -144,8 +153,8 @@ public class Observation {
 			return DateTimeUtil.toSqlDateTimeString(new Date(valueDatetime));
 		} else if (getValueNumeric() != null) {
 			return getValueNumeric();
-		} else if (getValueCoded() != null) {
-			return getValueCoded();
+		} else if (getValueCodedName() != null) {
+			return getValueCodedName();
 		} else if (getValueBoolean() != null) {
 			return getValueBoolean();
 		} else
@@ -158,6 +167,18 @@ public class Observation {
 
 	public void setUuid(String uuid) {
 		this.uuid = uuid;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return obsId + ", " + patientId + ", " + conceptId + ", " + conceptName + ", " + encounterId + ", " + orderId
+				+ ", " + obsDatetime + ", " + locationId + ", " + valueNumeric + ", " + valueBoolean + ", " + valueCoded
+				+ ", " + valueCodedName + ", " + valueDatetime + ", " + valueText + ", " + uuid;
 	}
 
 }

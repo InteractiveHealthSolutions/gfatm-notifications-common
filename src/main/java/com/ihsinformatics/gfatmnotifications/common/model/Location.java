@@ -434,4 +434,15 @@ public class Location implements Serializable {
 		this.country = country;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return locationId + ", " + name + ", " + parentId + ", " + primaryContact + ", " + primaryContactName + ", "
+				+ secondaryContact + ", " + secondaryContactName + ", " + locationType + ", " + stateProvince + ", "
+				+ description + ", " + status + ", " + uuid;
+	}
 }

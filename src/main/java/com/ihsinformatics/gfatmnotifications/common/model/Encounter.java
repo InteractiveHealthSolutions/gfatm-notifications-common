@@ -12,7 +12,7 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 
 package com.ihsinformatics.gfatmnotifications.common.model;
 
-import java.util.Map;
+import java.util.List;
 
 import org.joda.time.DateTime;
 
@@ -36,7 +36,7 @@ public class Encounter {
 	private String username;
 	private long dateCreated;
 	private String uuid;
-	private Map<String, Object> observations;
+	private List<Observation> observations;
 
 	public Encounter() {
 	}
@@ -56,7 +56,7 @@ public class Encounter {
 	public Encounter(Integer encounterId, String encounterType, long encounterDatetime, String patientId,
 			String identifier, String patientName, String patientContact, String encounterLocation,
 			String locationContact, String provider, String providerContact, String username, long dateCreated,
-			String uuid, Map<String, Object> observations) {
+			String uuid, List<Observation> observations) {
 		super();
 		this.encounterId = encounterId;
 		this.encounterType = encounterType;
@@ -187,11 +187,22 @@ public class Encounter {
 		this.identifier = identifier;
 	}
 
-	public Map<String, Object> getObservations() {
+	public List<Observation> getObservations() {
 		return observations;
 	}
 
-	public void setObservations(Map<String, Object> observations) {
+	public void setObservations(List<Observation> observations) {
 		this.observations = observations;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return encounterId + ", " + encounterType + ", " + encounterDatetime + ", " + patientId + ", " + identifier
+				+ ", " + patientName + ", " + encounterLocation + ", " + provider + ", " + username + ", " + uuid;
 	}
 }
