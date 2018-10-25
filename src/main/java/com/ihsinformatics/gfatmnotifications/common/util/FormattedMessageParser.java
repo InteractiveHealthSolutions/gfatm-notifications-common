@@ -71,6 +71,8 @@ public class FormattedMessageParser {
 					Object object = getMatchingClassObject(entityName, objects);
 					output.append(getPropertyValue(object, propertyName));
 				} catch (Exception e) {
+					//TODO : if any entity is not available or found then throw Exception 
+					// discuss about this issue also
 					e.printStackTrace();
 				}
 			} else {

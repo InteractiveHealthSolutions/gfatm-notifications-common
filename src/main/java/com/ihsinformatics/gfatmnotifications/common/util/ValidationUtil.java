@@ -137,13 +137,15 @@ public class ValidationUtil {
 	 * @throws InvalidPropertiesFormatException
 	 */
 	public static boolean validateList(String list, String value) throws InvalidPropertiesFormatException {
-		if (!list.matches("^[A-Za-z0-9,_\\-\\s]+")) {
+	
+		// TODO commited for test only
+		/*	if (!list.matches("^[A-Za-z0-9,_\\-\\s]+")) {
 			throw new InvalidPropertiesFormatException(
 					"Invalid format provided for validation list. Must be a comma-separated list of alpha-numeric values (white space, hypen and underscore allowed).");
-		}
+		}*/
 		String[] values = list.split(",");
 		for (int i = 0; i < values.length; i++) {
-			if (value.equalsIgnoreCase(values[i]))
+			if (value.trim().equalsIgnoreCase(values[i].trim()))
 				return true;
 		}
 		return false;

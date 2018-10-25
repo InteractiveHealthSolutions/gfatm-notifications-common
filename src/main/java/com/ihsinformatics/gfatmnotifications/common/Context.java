@@ -411,7 +411,7 @@ public class Context {
 	public static void loadPatients() {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select p.person_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
+				"select distinct p.person_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
 		query.append(
 				"bp.value as birthplace,ms.value as maritalStatus,pcontact.value as primaryContact,pco.value as primaryContactOwner , scontact.value as secondaryContact,sco.value as secondaryContactOwner,");
 		query.append(
@@ -420,7 +420,7 @@ public class Context {
 				"nic.value as nationalID, cnicO.value as nationalIDOwner,gn.value as guardianName,ts.value as treatmentSupporter,oin.value as otherIdentificationNumber,tg.value as transgender,");
 		query.append(
 				"pat.value as patientType,pt.creator as creator , pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark,");
-		query.append("pi.identifier as patientIdentifier,pi.uuid,p.dead as dead from patient pt ");
+		query.append("pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
 		query.append(
 				"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
 		query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided =0 ");
@@ -467,6 +467,10 @@ public class Context {
 				"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
+		
+		query.append(" 	INNER join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " +  //and cons.value_coded=1065 
+				"        and cons.voided = 0 " );
+		
 		String jsonString = queryToJson(query.toString());
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
@@ -543,7 +547,7 @@ public class Context {
 		query.append(
 				"left outer join location_attribute as lc on lc.location_id = l.location_id and lc.attribute_type_id = 2 ");
 		query.append("left outer join encounter_provider as ep on ep.encounter_id = e.encounter_id ");
-		query.append("left outer join provider as pr on pr.provider_id = ep.encounter_id ");
+		query.append("left outer join provider as pr on pr.provider_id = ep.provider_id ");
 		query.append(
 				"left outer join person_attribute as upc on upc.person_id = pr.person_id and upc.person_attribute_type_id = 8 ");
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
@@ -571,13 +575,13 @@ public class Context {
 		query.append(
 				"left outer join location_attribute as lc on lc.location_id = l.location_id and lc.attribute_type_id = 2 ");
 		query.append("left outer join encounter_provider as ep on ep.encounter_id = e.encounter_id ");
-		query.append("left outer join provider as pr on pr.provider_id = ep.encounter_id ");
+		query.append("left outer join provider as pr on pr.provider_id = ep.provider_id ");
 		query.append(
 				"left outer join person_attribute as upc on upc.person_id = pr.person_id and upc.person_attribute_type_id = 8 ");
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append("where e.patient_id = (select patient_id from patient_identifier where identifier = '"
 				+ patientIdentifier + "')");
-		query.append("and e.encounter_type = " + encounterTypeId + " and e.voided = 0 ");
+		query.append("and e.encounter_type = " + encounterTypeId + " and e.voided = 0  order by e.encounter_datetime desc");
 
 		String jsonString = queryToJson(query.toString());
 		Type type = new TypeToken<List<Encounter>>() {
@@ -589,10 +593,12 @@ public class Context {
 	public static List<Observation> getEncounterObservations(Encounter encounter) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, vn.name as valueCodedName, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
+				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, c.name as conceptShortName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, vn.name as valueCodedName, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
 		query.append("inner join encounter as e on e.encounter_id = o.encounter_id ");
 		query.append(
-				"inner join concept_name as cn on cn.concept_id = o.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
+				"inner join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT'  ");
+		query.append(
+				"inner join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
 		query.append(
 				"inner join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());

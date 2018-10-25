@@ -57,6 +57,7 @@ public class Patient {
 	private String landmark;
 	private long dateCreated;
 	private String uuid;
+	private String consent;
 
 	public Patient() {
 	}
@@ -662,5 +663,13 @@ public class Patient {
 	 */
 	public String getFullName() {
 		return (givenName == null ? "" : givenName) + " " + (lastName == null ? "" : lastName);
+	}
+
+	public String getConsent() {
+		return consent;
+	}
+
+	public void setConsent(String consent) {
+		this.consent = consent;
 	}
 }

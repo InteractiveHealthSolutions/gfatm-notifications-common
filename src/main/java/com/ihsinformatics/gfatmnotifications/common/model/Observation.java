@@ -9,6 +9,7 @@ public class Observation {
 	private Integer patientId;
 	private Integer conceptId;
 	private String conceptName;
+	private String conceptShortName;
 	private Integer encounterId;
 	private String orderId;
 	private long obsDatetime;
@@ -179,6 +180,14 @@ public class Observation {
 		return obsId + ", " + patientId + ", " + conceptId + ", " + conceptName + ", " + encounterId + ", " + orderId
 				+ ", " + obsDatetime + ", " + locationId + ", " + valueNumeric + ", " + valueBoolean + ", " + valueCoded
 				+ ", " + valueCodedName + ", " + valueDatetime + ", " + valueText + ", " + uuid;
+	}
+
+	public String getConceptShortName() {
+		return conceptShortName;
+	}
+
+	public void setConceptShortName(String conceptShortName) {
+		this.conceptShortName = conceptShortName;
 	}
 
 }

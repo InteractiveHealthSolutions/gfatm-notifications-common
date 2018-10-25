@@ -15,7 +15,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -40,7 +44,12 @@ public class RuleBook {
 	private final Integer plusMinusUnitColumn = Context.getIntegerProperty("rule.unit.column");
 	private final Integer messageCodeColumn = Context.getIntegerProperty("rule.message_code.column");
 	private final Integer stopConditionColumn = Context.getIntegerProperty("rule.stop_condition.column");
+	private final Integer fetchDurationColumn=Context.getIntegerProperty("rule.fetch_duration.column");
 	private List<Rule> rules;
+	private Map<String,String> messages;
+	private Set<String> blacklistedPatients;
+	private Set<String> blacklistedLocations;
+	private Set<String> blacklistedUsers;
 
 	public RuleBook(File ruleBookFile) throws IOException {
 		FileInputStream fis = new FileInputStream(ruleBookFile);
@@ -64,11 +73,43 @@ public class RuleBook {
 			rule.setPlusMinusUnit(row.getCell(plusMinusUnitColumn).getStringCellValue());
 			rule.setMessageCode(row.getCell(messageCodeColumn).getStringCellValue());
 			try {
+				rule.setFetchDuration(row.getCell(fetchDurationColumn).getStringCellValue());
 				rule.setStopCondition(row.getCell(stopConditionColumn).getStringCellValue());
 			} catch (Exception e) {
 			}
 			rules.add(rule);
 		}
+		
+		Sheet messageSheet = workbook.getSheet("Messages");
+		setMessages(new HashMap<String, String>());
+		for (Row row : messageSheet) {
+			// Skip the header row
+			if (row.getRowNum() == 0) {
+				continue;
+			}
+			getMessages().put(row.getCell(0).getStringCellValue(), row.getCell(1).getStringCellValue());
+
+		}
+		
+		Sheet blacklistSheet = workbook.getSheet("Blacklist");
+		setBlacklistedPatient(new HashSet<String>());
+		setBlacklistedLocations(new HashSet<String>());
+		setBlacklistedUsers(new HashSet<String>());
+		
+		for (Row row : blacklistSheet) {
+			// Skip the header row
+			if (row.getRowNum() == 0) {
+				continue;
+			}
+			try {
+			getBlacklistedPatient().add(row.getCell(0).getStringCellValue());
+			getBlacklistedLocations().add(row.getCell(1).getStringCellValue());
+			getBlacklistedUsers().add(row.getCell(2).getStringCellValue());
+			}catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
 		workbook.close();
 	}
 
@@ -114,5 +155,37 @@ public class RuleBook {
 			}
 		}
 		return smsRules;
+	}
+
+	public Map<String, String> getMessages() {
+		return messages;
+	}
+
+	public void setMessages(Map<String, String> messages) {
+		this.messages = messages;
+	}
+
+	public Set<String> getBlacklistedPatient() {
+		return blacklistedPatients;
+	}
+
+	public void setBlacklistedPatient(Set<String> blacklistedPatient) {
+		this.blacklistedPatients = blacklistedPatient;
+	}
+
+	public Set<String> getBlacklistedLocations() {
+		return blacklistedLocations;
+	}
+
+	public void setBlacklistedLocations(Set<String> blacklistedLocations) {
+		this.blacklistedLocations = blacklistedLocations;
+	}
+
+	public Set<String> getBlacklistedUsers() {
+		return blacklistedUsers;
+	}
+
+	public void setBlacklistedUsers(Set<String> blacklistedUsers) {
+		this.blacklistedUsers = blacklistedUsers;
 	}
 }

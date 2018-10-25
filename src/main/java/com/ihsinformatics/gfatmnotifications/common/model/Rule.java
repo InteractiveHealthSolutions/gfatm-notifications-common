@@ -11,6 +11,16 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 */
 package com.ihsinformatics.gfatmnotifications.common.model;
 
+import java.util.Calendar;
+import java.util.Date;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeUtils;
+import org.joda.time.LocalDateTime;
+
+import com.ihsinformatics.util.DateTimeUtil;
+import com.ihsinformatics.util.StringUtil;
+
 /**
  * @author owais.hussain@ihsinformatics.com
  *
@@ -26,6 +36,7 @@ public class Rule {
 	private String plusMinusUnit;
 	private String messageCode;
 	private String stopCondition;
+	private String fetchDuration;
 
 	/**
 	 * @return the type
@@ -162,5 +173,47 @@ public class Rule {
 	public String toString() {
 		return type + ", " + encounterType + ", " + sendTo + ", " + scheduleDate + ", " + plusMinus + ", "
 				+ plusMinusUnit + ", " + messageCode;
+	}
+
+	public String getFetchDuration() {
+		return fetchDuration;
+	}
+
+	public void setFetchDuration(String fetchDuration) {
+		this.fetchDuration = fetchDuration;
+	}
+	
+	public DateTime getFetchDurationDate() {
+		if(fetchDuration==null || fetchDuration.isEmpty()) {
+			return null;
+		}
+		
+		Date toDay=new Date();
+		DateTime referenceDate =new DateTime();
+		DateTime returnDate =null;
+		String[] values = fetchDuration.split(" ");
+		 int  duration=Integer.parseInt(values[0].trim());
+		 Calendar c = Calendar.getInstance(); 
+		 c.setTime(toDay); 
+		 if(values[1].equalsIgnoreCase("months")) {
+			 returnDate= referenceDate.minusMonths(duration).toDateTime();
+			 //LocalDateTime.from(toDay.toInstant()).minusMonths(duration);
+			 c.add(Calendar.MONTH, duration);
+		 }else if(values[1].equalsIgnoreCase("days")) {
+			 c.add(Calendar.DATE, duration);
+			 returnDate= referenceDate.minusDays(duration).toDateTime();
+		 }
+		/* else if (values[1].equalsIgnoreCase("years")) {
+			 
+		 }*/
+				 //DateTimeUtil.
+		
+		
+		return returnDate;
+	}
+	
+	public DateTime getScheduleDateTime() {
+		
+		return null;
 	}
 }
