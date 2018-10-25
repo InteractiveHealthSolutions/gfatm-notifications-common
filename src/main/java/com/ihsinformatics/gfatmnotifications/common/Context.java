@@ -468,7 +468,7 @@ public class Context {
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
 		
-		query.append(" 	INNER join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " +  //and cons.value_coded=1065 
+		query.append(" 	left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " +  //and cons.value_coded=1065 
 				"        and cons.voided = 0 " );
 		
 		String jsonString = queryToJson(query.toString());
