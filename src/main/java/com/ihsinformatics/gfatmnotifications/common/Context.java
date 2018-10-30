@@ -32,6 +32,9 @@ import com.ihsinformatics.gfatmnotifications.common.model.RuleBook;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.util.DateDeserializer;
 import com.ihsinformatics.gfatmnotifications.common.util.DateSerializer;
+import com.ihsinformatics.gfatmnotifications.common.util.Decision;
+import com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser;
+import com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil;
 import com.ihsinformatics.util.ClassLoaderUtil;
 import com.ihsinformatics.util.DatabaseUtil;
 import com.ihsinformatics.util.DateTimeUtil;
@@ -816,5 +819,64 @@ public class Context {
 	 */
 	public static void setPatients(List<Patient> patients) {
 		Context.patients = patients;
+	}
+	
+	public static Date calculateScheduleDate(DateTime referenceDate, Double plusMinus, String plusMinusUnit) {
+		Date returnDate = null;
+		if (referenceDate == null) {
+			return returnDate;
+		}
+		if (plusMinusUnit.equalsIgnoreCase("hours")) {
+			if (plusMinus < 0) {
+				returnDate = referenceDate.minusHours(plusMinus.intValue()).toDate();
+			} else {
+				returnDate = referenceDate.plusHours(plusMinus.intValue()).toDate();
+			}
+		} else if (plusMinusUnit.equalsIgnoreCase("days")) {
+			if (plusMinus < 0) {
+				returnDate = referenceDate.minusDays(plusMinus.intValue()).toDate();
+			} else {
+				returnDate = referenceDate.plusDays(plusMinus.intValue()).toDate();
+			}
+		} else if (plusMinusUnit.equalsIgnoreCase("months")) {
+			if (plusMinus < 0) {
+				returnDate = referenceDate.minusMonths(plusMinus.intValue()).toDate();
+			} else {
+				returnDate = referenceDate.plusMonths(plusMinus.intValue()).toDate();
+			}
+		}
+		return returnDate;
+	}
+
+	public static  DateTime getReferenceDate(String scheduleDate, Encounter encounter) throws Exception {
+
+		DateTime referenceDate = null;
+		FormattedMessageParser formattedMessageParser = new FormattedMessageParser(Decision.SKIP);
+
+		try {
+			Object object;
+			object = formattedMessageParser.getPropertyValue(encounter, scheduleDate);
+			if (object != null) {
+				if (object instanceof Long) {
+					return referenceDate = new DateTime((Long) object);
+				} else {
+					log.severe("Schedule Date must be a Date");
+					throw new Exception("Schedule Date Object is not a Date ");
+				}
+			}
+		} catch (SecurityException | IllegalArgumentException | ReflectiveOperationException e) {
+			e.printStackTrace();
+		}
+
+		Observation target = null;
+		for (Observation observation : encounter.getObservations()) {
+			if (ValidationUtil.variableMatchesWithConcept(scheduleDate, observation)) {
+				target = observation;
+				referenceDate = new DateTime(target.getValueDatetime());
+				break;
+			}
+		}
+
+		return referenceDate;
 	}
 }

@@ -12,13 +12,25 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 
 package com.ihsinformatics.gfatmnotifications.common.util;
 
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.InvalidPropertiesFormatException;
+import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.json.JSONObject;
+
 import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
+import com.ihsinformatics.gfatmnotifications.common.model.Location;
+import com.ihsinformatics.gfatmnotifications.common.model.Observation;
+import com.ihsinformatics.gfatmnotifications.common.model.Patient;
+import com.ihsinformatics.gfatmnotifications.common.model.Rule;
+import com.ihsinformatics.gfatmnotifications.common.model.User;
+import com.ihsinformatics.util.JsonUtil;
 import com.ihsinformatics.util.RegexUtil;
 
 /**
@@ -26,7 +38,7 @@ import com.ihsinformatics.util.RegexUtil;
  *
  */
 public class ValidationUtil {
-
+	private static final Logger log = Logger.getLogger(Class.class.getName());
 	/**
 	 * Checks whether given email address is valid or not.
 	 * 
@@ -264,4 +276,353 @@ public class ValidationUtil {
 		}
 		return (isValidDataType && isValidValue);
 	}
+	
+	
+	public static  boolean validateStopConditions(Patient patient, Location location, Encounter encounter, Rule rule) {
+		if (rule.getStopCondition() == null || rule.getStopCondition().isEmpty()) {
+			return false;
+		}
+		String conditions = rule.getStopCondition();
+		String orPattern = "(.)+OR(.)+";
+		String andPattern = "(.)+AND(.)+";
+		if (conditions.matches(orPattern) && conditions.matches(andPattern)) {
+			String[] orConditions = conditions.split("( )?OR( )?");
+			for (String condition : orConditions) {
+				// No need to proceed even if one condition is true
+				if (condition.matches(andPattern)) {
+
+					String[] andConditions = conditions.split("( )?AND( )?");
+					for (String nestedCondition : andConditions) {
+						// No need to proceed even if one condition is false
+						if (!validateSingleStopCondition(nestedCondition, patient, location)) {
+							return false;
+						}
+					}
+					return true;
+				} else {
+					return validateSingleStopCondition(conditions, patient, location);
+				}
+			}
+
+			return false;
+		}
+		if (conditions.matches(orPattern)) {
+			String[] orConditions = conditions.split("( )?OR( )?");
+			for (String condition : orConditions) {
+				// No need to proceed even if one condition is true
+
+				if (validateSingleStopCondition(condition, patient, location)) {
+					return true;
+				}
+			}
+		} else if (conditions.matches(andPattern)) {
+			String[] orConditions = conditions.split("( )?AND( )?");
+			for (String condition : orConditions) {
+				// No need to proceed even if one condition is false
+				if (!validateSingleStopCondition(condition, patient, location)) {
+					return false;
+				}
+			}
+			return true;
+		} else {
+			return validateSingleStopCondition(conditions, patient, location);
+		}
+
+		return false;
+	}
+
+	public static boolean validateSingleStopCondition(String condition, Patient patient, Location location) {
+		boolean result = false;
+		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
+	/*	if (jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")) {
+			log.severe("Condition must contain all four required keys: entity, validate and value");
+			return false;
+		} else if(jsonObject.has("entity") && jsonObject.has("encounter") && jsonObject.has("validate")
+				&& jsonObject.has("after")) {
+			log.severe("Condition must contain all four required keys: entity, validate, after and encounter ");
+			return false;
+		}*/
+
+		String entity = jsonObject.getString("entity");
+
+		String validationType = jsonObject.getString("validate");
+
+		// Fetch all the encounters for this type
+		/*
+		 * List<Encounter> encounters = Context.getEncounters(from, to, ));
+		 */
+		String encounter = jsonObject.getString("encounter");
+		Encounter baseEncounter = null;
+		if (encounter != null || (!encounter.isEmpty())) {
+			try {
+			baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
+					Context.getEncounterTypeId(encounter));
+			baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter));
+			}catch(Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+		String property = jsonObject.getString("property");
+		String expectedValue = jsonObject.getString("value");
+		String actualValue = null;
+		try {
+			// In case of Encounter, search through observations
+			if (entity.equals("Encounter")) {
+				// Search for the observation's concept name matching the variable name
+				Observation target = null;
+				for (Observation observation : baseEncounter.getObservations()) {
+					if (variableMatchesWithConcept(property, observation)) {
+						target = observation;
+						break;
+					}
+				}
+				if (target == null) {
+					return result;
+				}
+				actualValue = target.getValue().toString();
+			}
+			// In case of Patient or Location, search for the defined property
+			else if (entity.equals("Patient")) {
+				actualValue = getEntityPropertyValue(patient, property);
+			} else if (entity.equals("Location")) {
+				actualValue = getEntityPropertyValue(location, property);
+
+			}
+
+			// Check the type of validation and call respective method
+			if (validationType.equalsIgnoreCase("Encounter")) {
+				String afterEncounterType = jsonObject.getString("after");
+				Encounter afterEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
+						Context.getEncounterTypeId(afterEncounterType));
+				if (baseEncounter.getEncounterDate() > afterEncounter.getEncounterDate()) {
+					return true;
+				}
+			} else {
+
+				// Search for the observation's concept name matching the variable name
+				Observation target = null;
+				for (Observation observation : baseEncounter.getObservations()) {
+					if (variableMatchesWithConcept(property, observation)) {
+						target = observation;
+						break;
+					}
+				}
+				if (target == null) {
+					return result;
+				}
+				actualValue = target.getValue().toString();
+
+				if (validationType.equals("VALUE")) {
+					return actualValue.equalsIgnoreCase(expectedValue);
+				} else if (validationType.equalsIgnoreCase("RANGE")) {
+					Double valueDouble = Double.parseDouble(actualValue);
+					return ValidationUtil.validateRange(expectedValue, valueDouble);
+				} else if (validationType.equalsIgnoreCase("REGEX")) {
+					return ValidationUtil.validateRegex(expectedValue, actualValue);
+				} else if (validationType.equalsIgnoreCase("QUERY")) {
+					return ValidationUtil.validateQuery(expectedValue, actualValue);
+				} else if (validationType.equalsIgnoreCase("NOTNULL") || validationType.equalsIgnoreCase("PRESENT")
+						|| validationType.equalsIgnoreCase("EXISTS")) {
+					if (actualValue != null) {
+						return true;
+					}
+					return false;
+				} else if (validationType.equalsIgnoreCase("List")) {
+					return ValidationUtil.validateList(expectedValue, actualValue);
+
+				}
+
+			}
+		} catch (InvalidPropertiesFormatException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	/**
+	 * At present, this function can only validate all OR's or all AND's, not their
+	 * combinations
+	 * 
+	 * @param patient   TODO
+	 * @param location  TODO
+	 * @param encounter
+	 * @param rule
+	 * 
+	 * @return
+	 */
+	public static boolean validateConditions(Patient patient, Location location, Encounter encounter, Rule rule) {
+		String conditions = rule.getConditions();
+		String orPattern = "(.)+OR(.)+";
+		String andPattern = "(.)+AND(.)+";
+		if (conditions.matches(orPattern) && conditions.matches(andPattern)) {
+			String[] orConditions = conditions.split("( )?OR( )?");
+			for (String condition : orConditions) {
+				// No need to proceed even if one condition is true
+				if (condition.matches(andPattern)) {
+
+					String[] andConditions = conditions.split("( )?AND( )?");
+					for (String nestedCondition : andConditions) {
+						// No need to proceed even if one condition is false
+						if (!validateSingleCondition(conditions, patient, location, encounter,
+								encounter.getObservations())) {
+							return false;
+						}
+					}
+					return true;
+				} else {
+					return validateSingleCondition(conditions, patient, location, encounter,
+							encounter.getObservations());
+				}
+			}
+			return false;
+		}
+		if (conditions.matches(orPattern)) {
+			String[] orConditions = conditions.split("( )?OR( )?");
+			for (String condition : orConditions) {
+				// No need to proceed even if one condition is true
+				if (validateSingleCondition(condition, patient, location, encounter, encounter.getObservations())) {
+					return true;
+				}
+			}
+		} else if (conditions.matches(andPattern)) {
+			String[] orConditions = conditions.split("( )?AND( )?");
+			for (String condition : orConditions) {
+				// No need to proceed even if one condition is false
+				if (!validateSingleCondition(condition, patient, location, encounter, encounter.getObservations())) {
+					return false;
+				}
+			}
+			return true;
+		} else {
+			return validateSingleCondition(conditions, patient, location, encounter, encounter.getObservations());
+		}
+		return false;
+	}
+
+	private static boolean validateSingleCondition(String condition, Patient patient, Location location, Encounter encounter,
+			List<Observation> observations) {
+		boolean result = false;
+		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
+		if (!(jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")
+				&& jsonObject.has("value"))) {
+			log.severe("Condition must contain all four required keys: entity, validate and value");
+			return false;
+		}
+		String entity = jsonObject.getString("entity");
+		String property = jsonObject.getString("property");
+		String validationType = jsonObject.getString("validate");
+		String expectedValue = jsonObject.getString("value");
+		String actualValue = null;
+
+		try {
+			// In case of Encounter, search through observations
+			if (entity.equals("Encounter")) {
+				// Search for the observation's concept name matching the variable name
+				Observation target = null;
+				for (Observation observation : observations) {
+					if (variableMatchesWithConcept(property, observation)) {
+						target = observation;
+						break;
+					}
+				}
+				if (target == null) {
+					return result;
+				}
+				actualValue = target.getValue().toString();
+			}
+			// In case of Patient or Location, search for the defined property
+			else if (entity.equals("Patient")) {
+				actualValue = getEntityPropertyValue(patient, property);
+			} else if (entity.equals("Location")) {
+				actualValue = getEntityPropertyValue(location, property);
+			}
+			// Check the type of validation and call respective method
+			if (validationType.equals("VALUE")) {
+				return actualValue.equalsIgnoreCase(expectedValue);
+			} else if (validationType.equalsIgnoreCase("RANGE")) {
+				Double valueDouble = Double.parseDouble(actualValue);
+				return ValidationUtil.validateRange(expectedValue, valueDouble);
+			} else if (validationType.equalsIgnoreCase("REGEX")) {
+				return ValidationUtil.validateRegex(expectedValue, actualValue);
+			} else if (validationType.equalsIgnoreCase("QUERY")) {
+				return ValidationUtil.validateQuery(expectedValue, actualValue);
+			} else if (validationType.equalsIgnoreCase("NOTNULL") || validationType.equalsIgnoreCase("PRESENT")
+					|| validationType.equalsIgnoreCase("EXISTS")) {
+				if (actualValue != null) {
+					return true;
+				}
+				return false;
+			} else if (validationType.equalsIgnoreCase("List")) {
+				return ValidationUtil.validateList(expectedValue, actualValue);
+			}
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	/**
+	 * Checks the entity type of the object and looks for the value in given
+	 * property using Reflection
+	 * 
+	 * @param object
+	 * @param property
+	 * @return
+	 * @throws NoSuchFieldException
+	 * @throws IllegalAccessException
+	 */
+	public static String getEntityPropertyValue(Object object, String property)
+			throws NoSuchFieldException, IllegalAccessException {
+		String actualValue;
+		Field field;
+		if (object instanceof Patient) {
+			field = Patient.class.getDeclaredField(property);
+		} else if (object instanceof Location) {
+			field = Location.class.getDeclaredField(property);
+		} else if (object instanceof Encounter) {
+			field = Encounter.class.getDeclaredField(property);
+		} else if (object instanceof User) {
+			field = User.class.getDeclaredField(property);
+		}
+		field = Patient.class.getDeclaredField(property);
+		boolean flag = field.isAccessible();
+		field.setAccessible(true);
+		actualValue = field.get(object).toString();
+		field.setAccessible(flag);
+		return actualValue;
+	}
+
+	/**
+	 * This function only checks whether the variable is an Integer ID, or a concept
+	 * name and matches with the concept in the observation
+	 * 
+	 * @param variable
+	 * @param observation
+	 * @return
+	 */
+	public static boolean variableMatchesWithConcept(String variable, Observation observation) {
+		// Check if the variable is a concept ID
+		if (RegexUtil.isNumeric(variable, false)) {
+			return observation.getConceptId().equals(Integer.parseInt(variable));
+		} else if (observation.getConceptName().equalsIgnoreCase(variable)) {
+			return true;
+		} else if (observation.getConceptShortName().equalsIgnoreCase(variable)) {
+			return true;
+		}
+		return false;
+	}
+
 }
