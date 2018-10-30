@@ -334,85 +334,49 @@ public class ValidationUtil {
 	public static boolean validateSingleStopCondition(String condition, Patient patient, Location location) {
 		boolean result = false;
 		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
-	/*	if (jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")) {
-			log.severe("Condition must contain all four required keys: entity, validate and value");
-			return false;
-		} else if(jsonObject.has("entity") && jsonObject.has("encounter") && jsonObject.has("validate")
-				&& jsonObject.has("after")) {
-			log.severe("Condition must contain all four required keys: entity, validate, after and encounter ");
-			return false;
-		}*/
+		if (jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")) {
 
-		String entity = jsonObject.getString("entity");
+			String entity = jsonObject.getString("entity");
 
-		String validationType = jsonObject.getString("validate");
-
-		// Fetch all the encounters for this type
-		/*
-		 * List<Encounter> encounters = Context.getEncounters(from, to, ));
-		 */
-		String encounter = jsonObject.getString("encounter");
-		Encounter baseEncounter = null;
-		if (encounter != null || (!encounter.isEmpty())) {
+			String validationType = jsonObject.getString("validate");
+			String property = jsonObject.getString("property");
+			String expectedValue = jsonObject.getString("value");
+			String actualValue = null;
+			String encounter = jsonObject.getString("encounter");
+			Encounter baseEncounter = null;
+			if (encounter != null || (!encounter.isEmpty())) {
+				try {
+					baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
+							Context.getEncounterTypeId(encounter));
+					baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter));
+				} catch (Exception e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
 			try {
-			baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
-					Context.getEncounterTypeId(encounter));
-			baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter));
-			}catch(Exception e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
-		String property = jsonObject.getString("property");
-		String expectedValue = jsonObject.getString("value");
-		String actualValue = null;
-		try {
-			// In case of Encounter, search through observations
-			if (entity.equals("Encounter")) {
-				// Search for the observation's concept name matching the variable name
-				Observation target = null;
-				for (Observation observation : baseEncounter.getObservations()) {
-					if (variableMatchesWithConcept(property, observation)) {
-						target = observation;
-						break;
+				// In case of Encounter, search through observations
+				if (entity.equals("Encounter")) {
+					// Search for the observation's concept name matching the variable name
+					Observation target = null;
+					for (Observation observation : baseEncounter.getObservations()) {
+						if (variableMatchesWithConcept(property, observation)) {
+							target = observation;
+							break;
+						}
 					}
-				}
-				if (target == null) {
-					return result;
-				}
-				actualValue = target.getValue().toString();
-			}
-			// In case of Patient or Location, search for the defined property
-			else if (entity.equals("Patient")) {
-				actualValue = getEntityPropertyValue(patient, property);
-			} else if (entity.equals("Location")) {
-				actualValue = getEntityPropertyValue(location, property);
-
-			}
-
-			// Check the type of validation and call respective method
-			if (validationType.equalsIgnoreCase("Encounter")) {
-				String afterEncounterType = jsonObject.getString("after");
-				Encounter afterEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
-						Context.getEncounterTypeId(afterEncounterType));
-				if (baseEncounter.getEncounterDate() > afterEncounter.getEncounterDate()) {
-					return true;
-				}
-			} else {
-
-				// Search for the observation's concept name matching the variable name
-				Observation target = null;
-				for (Observation observation : baseEncounter.getObservations()) {
-					if (variableMatchesWithConcept(property, observation)) {
-						target = observation;
-						break;
+					if (target == null) {
+						return result;
 					}
+					actualValue = target.getValue().toString();
 				}
-				if (target == null) {
-					return result;
-				}
-				actualValue = target.getValue().toString();
+				// In case of Patient or Location, search for the defined property
+				else if (entity.equals("Patient")) {
+					actualValue = getEntityPropertyValue(patient, property);
+				} else if (entity.equals("Location")) {
+					actualValue = getEntityPropertyValue(location, property);
 
+				}
 				if (validationType.equals("VALUE")) {
 					return actualValue.equalsIgnoreCase(expectedValue);
 				} else if (validationType.equalsIgnoreCase("RANGE")) {
@@ -433,21 +397,56 @@ public class ValidationUtil {
 
 				}
 
+			} catch (InvalidPropertiesFormatException e) {
+				e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} catch (NoSuchFieldException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
 			}
-		} catch (InvalidPropertiesFormatException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// log.severe("Condition must contain all four required keys: entity, validate
+			// and value");
+			return false;
+		} else if (jsonObject.has("entity") && jsonObject.has("encounter") && jsonObject.has("validate")
+				&& jsonObject.has("after")) {
+
+			String entity = jsonObject.getString("entity");
+
+			String validationType = jsonObject.getString("validate");
+			String encounter = jsonObject.getString("encounter");
+			String afterEncounterType = jsonObject.getString("after");
+			Encounter baseEncounter = null;
+			if (encounter != null || (!encounter.isEmpty())) {
+				try {
+					baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
+							Context.getEncounterTypeId(encounter));
+					baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter));
+				} catch (Exception e) {
+					e.printStackTrace();
+					return false;
+				}
+
+				// Check the type of validation and call respective method
+				if (validationType.equalsIgnoreCase("Encounter")) {
+					Encounter afterEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
+							Context.getEncounterTypeId(afterEncounterType));
+					if (baseEncounter.getEncounterDate() > afterEncounter.getEncounterDate()) {
+						return true;
+					}
+				}
+
+				// 0log.severe("Condition must contain all four required keys: entity, validate,
+				// after and encounter ");
+				return false;
+			}
 		}
+
 		return false;
+
 	}
-	
+
 	/**
 	 * At present, this function can only validate all OR's or all AND's, not their
 	 * combinations
