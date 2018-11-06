@@ -521,7 +521,7 @@ public class Context {
 		query.append("inner join encounter as e \r\n" + 
 				"        on e.patient_id=pt.patient_id and e.voided=0\r\n" + 
 				"        where  pt.voided=0 and ( e.encounter_type=104 or e.encounter_type=29 or e.encounter_type=67 or e.encounter_type=7\r\n" + 
-				"        or e.encounter_type=4) group by pt.patient_id;\r\n" + 
+				"        or e.encounter_type=4) group by pt.patient_id    limit 500;\r\n   " + 
 				"");
 		
 		String jsonString = queryToJson(query.toString(),dbUtil);
