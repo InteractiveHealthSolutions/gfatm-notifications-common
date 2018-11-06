@@ -37,6 +37,17 @@ public class Rule {
 	private String messageCode;
 	private String stopCondition;
 	private String fetchDuration;
+	private String fetchSource;
+
+	
+	
+	public String getDatabaseConnectionName() {
+		return fetchSource;
+	}
+
+	public void setDatabaseConnectionName(String databaseConnectionName) {
+		this.fetchSource = databaseConnectionName;
+	}
 
 	/**
 	 * @return the type

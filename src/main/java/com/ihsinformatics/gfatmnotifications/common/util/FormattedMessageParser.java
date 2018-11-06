@@ -15,15 +15,24 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.poi.hpsf.Date;
+import org.joda.time.DateTime;
+
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
+import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
+import com.ihsinformatics.gfatmnotifications.common.model.Observation;
+import com.ihsinformatics.gfatmnotifications.common.model.Patient;
+import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.util.ClassLoaderUtil;
 import com.ihsinformatics.util.CommandType;
 
@@ -32,6 +41,33 @@ import com.ihsinformatics.util.CommandType;
  *
  */
 public class FormattedMessageParser {
+	
+	
+	
+	public static void main(String[] args) {
+	    String message ="[encounter.encounterDatetime.day]  {patient.getFullName}, aap ko yaad karana chahtain hain kay ap ko {encounter[encounterType=Childhood TB-Treatment Initiation].observations[concept=RETURN VISIT DATE].valueDatetime}, barooz [day of week in urdu], {patient.getHealthCenter} pe doctor ke paas moainey aur adwiyaat hasil karne ke liyey tashreef lana hai. Agar is kay mutaliq ap kuch poochna chahain tou AaoTBMitao helpline 080011982 pe rabta karain.";
+	  	Patient patient = new Patient();
+	  	 patient.setLastName("bac");
+	  	 
+	  	 User  user = new User();
+	  	 user.setLastName("LAST ANAME");
+	  	 
+	  	 Encounter  encounter = new Encounter();
+	  	 encounter.setEncounterDate(new DateTime().getMillis());
+	  	 encounter.setDateCreated(new DateTime().getMillis());
+	  	 
+	  	 user.setLastName("LAST ANAME");
+	  	  
+		FormattedMessageParser  parser  =  new FormattedMessageParser(null);
+		try {
+			parser.parseFormattedMessage(message, patient,user,encounter);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+
+		
+	}
+	
 
 	private Decision onNullDecision;
 
@@ -60,9 +96,10 @@ public class FormattedMessageParser {
 		for (String token : tokens) {
 			// Detect the entity.property tokens
 			if (isEntityValuePair(token)) {
-				String[] pair = token.split("\\.", 2);
+				String[] pair = token.split("\\.",2);
 				String entityName = pair[0];
 				String propertyName = pair[1];
+				
 				// Match the key with objects passed
 				try {
 					// Precaution! Turn first character into capital
@@ -75,13 +112,50 @@ public class FormattedMessageParser {
 					// discuss about this issue also
 					e.printStackTrace();
 				}
-			} else {
+			} else if (isEntityValuePairWithCondition(token)){
+				String[] pair = token.split("\\.");
+				String entityName = pair[0];
+				String propertyName = pair[1];
+				String condition = pair[2];
+				try {
+					entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
+							+ entityName.substring(1, entityName.length());
+					Object object = getMatchingClassObject(entityName, objects);
+					String resultPropertyVal = getPropertyValue(object, propertyName).toString();
+					 if (condition.equals("day")) {
+						  String nameOfDay = "";
+						 	if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
+	 		
+						 	/*	for (Observation observation :objects.getClass(). ) {
+							 			if (ValidationUtil.variableMatchesWithConcept(propertyName, observation)) {
+							 			break;
+							 			}
+						 		}*/
+						 		  nameOfDay = getDayName(Long.parseLong(resultPropertyVal));
+							}else{
+								 nameOfDay = getDayName(Long.parseLong(resultPropertyVal));
+							}
+						  output.append(nameOfDay);
+					}else{
+						  output.append(resultPropertyVal);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+			}else {
 				output.append(token);
 			}
 		}
 		// Detect SQL queries and replace result inside the text
 		String result = parseSqlQueries(output.toString());
 		return result;
+	}
+	
+	public String getDayName(long timestamp){
+		DateTime date=new DateTime(timestamp);
+		System.out.println("Week Days :" + DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()));
+		return DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()).toString();
 	}
 
 	/**
@@ -105,7 +179,7 @@ public class FormattedMessageParser {
 		text = m.replaceAll("<RESULT>");
 		// Execute queries and replace the first occurrence of placeholder with result
 		for (String query : queries) {
-			Object result = Context.getLocalDb().runCommand(CommandType.SELECT, query);
+			Object result = Context.getOpenmrsDb().runCommand(CommandType.SELECT, query);
 			if (result == null) {
 				result = "<MISSING TEXT>";
 			}
@@ -174,7 +248,9 @@ public class FormattedMessageParser {
 	public boolean isEntityValuePair(String token) {
 		return token.matches("^[\\w]+\\.[\\w]+$");
 	}
-
+	public boolean isEntityValuePairWithCondition (String token) {
+		return token.matches("^[\\w]+\\.[\\w]+\\.[\\w]+$");
+	}
 	/**
 	 * Detect opening and closing parenthesis and tokenize the given string
 	 * 

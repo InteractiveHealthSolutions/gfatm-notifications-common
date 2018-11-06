@@ -44,7 +44,8 @@ public class RuleBook {
 	private final Integer plusMinusUnitColumn = Context.getIntegerProperty("rule.unit.column");
 	private final Integer messageCodeColumn = Context.getIntegerProperty("rule.message_code.column");
 	private final Integer stopConditionColumn = Context.getIntegerProperty("rule.stop_condition.column");
-	private final Integer fetchDurationColumn=Context.getIntegerProperty("rule.fetch_duration.column");
+	private final Integer fetchDurationColumn= Context.getIntegerProperty("rule.fetch_duration.column");
+	private final Integer databaseConnectionNameColumn = Context.getIntegerProperty("rule.database_connection_name.column");
 	private List<Rule> rules;
 	private Map<String,String> messages;
 	private Set<String> blacklistedPatients;
@@ -75,6 +76,7 @@ public class RuleBook {
 			try {
 				rule.setFetchDuration(row.getCell(fetchDurationColumn).getStringCellValue());
 				rule.setStopCondition(row.getCell(stopConditionColumn).getStringCellValue());
+				rule.setDatabaseConnectionName(row.getCell(databaseConnectionNameColumn).getStringCellValue());
 			} catch (Exception e) {
 			}
 			rules.add(rule);

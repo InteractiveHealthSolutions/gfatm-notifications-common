@@ -30,6 +30,7 @@ import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.Rule;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
+import com.ihsinformatics.util.DatabaseUtil;
 import com.ihsinformatics.util.JsonUtil;
 import com.ihsinformatics.util.RegexUtil;
 
@@ -172,7 +173,7 @@ public class ValidationUtil {
 	 * @throws SQLException
 	 */
 	public static boolean validateQuery(String query, String value) throws SQLException {
-		Object[][] data = Context.getLocalDb().getTableData(query);
+		Object[][] data = Context.getOpenmrsDb().getTableData(query);
 		for (Object[] row : data) {
 			for (Object obj : row) {
 				if (Objects.equals(obj, value)) {
@@ -278,7 +279,7 @@ public class ValidationUtil {
 	}
 	
 	
-	public static  boolean validateStopConditions(Patient patient, Location location, Encounter encounter, Rule rule) {
+	public static  boolean validateStopConditions(Patient patient, Location location, Encounter encounter, Rule rule,DatabaseUtil dbUtil) {
 		if (rule.getStopCondition() == null || rule.getStopCondition().isEmpty()) {
 			return false;
 		}
@@ -294,13 +295,13 @@ public class ValidationUtil {
 					String[] andConditions = conditions.split("( )?AND( )?");
 					for (String nestedCondition : andConditions) {
 						// No need to proceed even if one condition is false
-						if (!validateSingleStopCondition(nestedCondition, patient, location)) {
+						if (!validateSingleStopCondition(nestedCondition, patient, location,dbUtil)) {
 							return false;
 						}
 					}
 					return true;
 				} else {
-					return validateSingleStopCondition(conditions, patient, location);
+					return validateSingleStopCondition(conditions, patient, location,dbUtil);
 				}
 			}
 
@@ -311,7 +312,7 @@ public class ValidationUtil {
 			for (String condition : orConditions) {
 				// No need to proceed even if one condition is true
 
-				if (validateSingleStopCondition(condition, patient, location)) {
+				if (validateSingleStopCondition(condition, patient, location,dbUtil)) {
 					return true;
 				}
 			}
@@ -319,19 +320,19 @@ public class ValidationUtil {
 			String[] orConditions = conditions.split("( )?AND( )?");
 			for (String condition : orConditions) {
 				// No need to proceed even if one condition is false
-				if (!validateSingleStopCondition(condition, patient, location)) {
+				if (!validateSingleStopCondition(condition, patient, location,dbUtil)) {
 					return false;
 				}
 			}
 			return true;
 		} else {
-			return validateSingleStopCondition(conditions, patient, location);
+			return validateSingleStopCondition(conditions, patient, location,dbUtil);
 		}
 
 		return false;
 	}
 
-	public static boolean validateSingleStopCondition(String condition, Patient patient, Location location) {
+	public static boolean validateSingleStopCondition(String condition, Patient patient, Location location,DatabaseUtil dbUtil) {
 		boolean result = false;
 		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
 		if (jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")) {
@@ -347,8 +348,8 @@ public class ValidationUtil {
 			if (encounter != null || (!encounter.isEmpty())) {
 				try {
 					baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
-							Context.getEncounterTypeId(encounter));
-					baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter));
+							Context.getEncounterTypeId(encounter),dbUtil);
+					baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter,dbUtil));
 				} catch (Exception e) {
 					e.printStackTrace();
 					return false;
@@ -421,8 +422,8 @@ public class ValidationUtil {
 			if (encounter != null || (!encounter.isEmpty())) {
 				try {
 					baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
-							Context.getEncounterTypeId(encounter));
-					baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter));
+							Context.getEncounterTypeId(encounter),dbUtil);
+					baseEncounter.setObservations(Context.getEncounterObservations(baseEncounter,dbUtil));
 				} catch (Exception e) {
 					e.printStackTrace();
 					return false;
@@ -431,7 +432,7 @@ public class ValidationUtil {
 				// Check the type of validation and call respective method
 				if (validationType.equalsIgnoreCase("Encounter")) {
 					Encounter afterEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
-							Context.getEncounterTypeId(afterEncounterType));
+							Context.getEncounterTypeId(afterEncounterType),dbUtil);
 					if (baseEncounter.getEncounterDate() > afterEncounter.getEncounterDate()) {
 						return true;
 					}
