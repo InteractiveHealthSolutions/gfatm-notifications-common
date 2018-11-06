@@ -328,6 +328,7 @@ public class Context {
 	 */
 	public static void loadEncounterTypes(DatabaseUtil dbUtil) {
 		encounterTypes = new HashMap<Integer, String>();
+		try {
 		StringBuilder query = new StringBuilder(
 				"SELECT encounter_type_id as encounterTypeId, name FROM encounter_type where retired = 0");
 		Object[][] data = dbUtil.getTableData(query.toString());
@@ -336,6 +337,9 @@ public class Context {
 		}
 		for (Object[] element : data) {
 			encounterTypes.put(Integer.parseInt(element[0].toString()), element[1].toString());
+		}
+		}catch(Exception e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -455,7 +459,7 @@ public class Context {
 	public static void loadPatients(DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select distinct p.person_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
+				"select  pt.patient_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
 		query.append(
 				"bp.value as birthplace,ms.value as maritalStatus,pcontact.value as primaryContact,pco.value as primaryContactOwner , scontact.value as secondaryContact,sco.value as secondaryContactOwner,");
 		query.append(
@@ -513,7 +517,12 @@ public class Context {
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
 		
 		query.append(" 	left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " +  //and cons.value_coded=1065 
-				"        and cons.voided = 0 " );
+				"        and cons.voided = 0   " );
+		query.append("inner join encounter as e \r\n" + 
+				"        on e.patient_id=pt.patient_id and e.voided=0\r\n" + 
+				"        where  pt.voided=0 and ( e.encounter_type=104 or e.encounter_type=29 or e.encounter_type=67 or e.encounter_type=7\r\n" + 
+				"        or e.encounter_type=4) group by pt.patient_id;\r\n" + 
+				"");
 		
 		String jsonString = queryToJson(query.toString(),dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
@@ -573,8 +582,9 @@ public class Context {
 		filter.append("timestamp('" + sqlFrom + "') ");
 		filter.append("and ");
 		filter.append("timestamp('" + sqlTo + "') ");
-		filter.append("and ");
-		filter.append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24 ");
+		//commited 24hours filter as per discussion 
+		/*		filter.append("and ");
+		filter.append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24 ");*/
 		if (type != null) {
 			filter.append(" and e.encounter_type=" + type);
 		}
