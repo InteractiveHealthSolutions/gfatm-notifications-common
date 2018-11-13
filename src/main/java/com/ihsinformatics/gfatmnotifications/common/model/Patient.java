@@ -12,6 +12,8 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 
 package com.ihsinformatics.gfatmnotifications.common.model;
 
+import com.ihsinformatics.gfatmnotifications.common.Context;
+
 /**
  * @author owais.hussain@ihsinformatics.com
  *
@@ -228,7 +230,12 @@ public class Patient {
 	 * @return the healthCenter
 	 */
 	public String getHealthCenter() {
-		return healthCenter;
+		if (healthCenter == null || healthCenter.equals("")) {
+			return null;
+		} else {
+			return Context.getLocationById(Integer.parseInt(healthCenter.trim()), Context.getOpenmrsDb()).getName()
+					.trim();
+		} 
 	}
 
 	/**

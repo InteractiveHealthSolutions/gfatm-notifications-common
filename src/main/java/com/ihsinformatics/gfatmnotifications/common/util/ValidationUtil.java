@@ -460,7 +460,7 @@ public class ValidationUtil {
 	 * @return
 	 */
 	public static boolean validateConditions(Patient patient, Location location, Encounter encounter, Rule rule) {
-		String conditions = rule.getConditions();
+		String conditions = rule.getConditions().trim();
 		String orPattern = "(.)+OR(.)+";
 		String andPattern = "(.)+AND(.)+";
 		if (conditions.matches(orPattern) && conditions.matches(andPattern)) {
@@ -511,19 +511,27 @@ public class ValidationUtil {
 	private static boolean validateSingleCondition(String condition, Patient patient, Location location, Encounter encounter,
 			List<Observation> observations) {
 		boolean result = false;
-		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
+		try {
+		
+		JSONObject jsonObject = JsonUtil.getJSONObject(condition.trim());
 		if (!(jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")
-				&& jsonObject.has("value"))) {
+				/*&& jsonObject.has("value")*/)) {
+			log.info(jsonObject.toString());
 			log.severe("Condition must contain all four required keys: entity, validate and value");
 			return false;
 		}
 		String entity = jsonObject.getString("entity");
 		String property = jsonObject.getString("property");
 		String validationType = jsonObject.getString("validate");
-		String expectedValue = jsonObject.getString("value");
+		 String expectedValue=null ;
+		 if (!(validationType.equalsIgnoreCase("NOTNULL") || validationType.equalsIgnoreCase("PRESENT")
+					|| validationType.equalsIgnoreCase("EXISTS"))) {
+			 
+			  expectedValue = jsonObject.getString("value");
+		 }
 		String actualValue = null;
 
-		try {
+	
 			// In case of Encounter, search through observations
 			if (entity.equals("Encounter")) {
 				// Search for the observation's concept name matching the variable name
@@ -567,8 +575,12 @@ public class ValidationUtil {
 		} catch (NoSuchFieldException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
+			e.printStackTrace();  //org.json.JSONException
+		} catch (org.json.JSONException e) {   
+			System.out.println("Condition :: "+ condition);
 			e.printStackTrace();
-		} catch (Exception e) {
+		}
+		catch (Exception e) {   
 			e.printStackTrace();
 		}
 		return result;

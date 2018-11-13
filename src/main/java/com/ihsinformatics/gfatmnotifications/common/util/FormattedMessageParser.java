@@ -13,7 +13,9 @@ package com.ihsinformatics.gfatmnotifications.common.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Timestamp;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -41,33 +43,38 @@ import com.ihsinformatics.util.CommandType;
  *
  */
 public class FormattedMessageParser {
-	
-	
-	
+
 	public static void main(String[] args) {
-	    String message ="[encounter.encounterDatetime.day]  {patient.getFullName}, aap ko yaad karana chahtain hain kay ap ko {encounter[encounterType=Childhood TB-Treatment Initiation].observations[concept=RETURN VISIT DATE].valueDatetime}, barooz [day of week in urdu], {patient.getHealthCenter} pe doctor ke paas moainey aur adwiyaat hasil karne ke liyey tashreef lana hai. Agar is kay mutaliq ap kuch poochna chahain tou AaoTBMitao helpline 080011982 pe rabta karain.";
-	  	Patient patient = new Patient();
-	  	 patient.setLastName("bac");
-	  	 
-	  	 User  user = new User();
-	  	 user.setLastName("LAST ANAME");
-	  	 
-	  	 Encounter  encounter = new Encounter();
-	  	 encounter.setEncounterDate(new DateTime().getMillis());
-	  	 encounter.setDateCreated(new DateTime().getMillis());
-	  	 
-	  	 user.setLastName("LAST ANAME");
-	  	  
-		FormattedMessageParser  parser  =  new FormattedMessageParser(null);
+		String message = "[encounter.return_visit_date.day]  [encounter.return_visit_date] {patient.getFullName}, aap ko yaad karana chahtain hain kay ap ko {encounter[encounterType=Childhood TB-Treatment Initiation].observations[concept=RETURN VISIT DATE].valueDatetime}, barooz [day of week in urdu], {patient.getHealthCenter} pe doctor ke paas moainey aur adwiyaat hasil karne ke liyey tashreef lana hai. Agar is kay mutaliq ap kuch poochna chahain tou AaoTBMitao helpline 080011982 pe rabta karain.";
+		Patient patient = new Patient();
+		patient.setLastName("bac");
+
+		User user = new User();
+		user.setLastName("LAST ANAME");
+
+		Encounter encounter = new Encounter();
+		encounter.setEncounterDate(new DateTime().getMillis());
+		encounter.setDateCreated(new DateTime().getMillis());
+
+		List<Observation> obsList = new ArrayList<>();
+		Observation observation = new Observation();
+		observation.setValueDatetime(new DateTime().getMillis());
+		obsList.add(observation);
+		observation = new Observation();
+		observation.setValueText("Test Val");
+		obsList.add(observation);
+		encounter.setObservations(obsList);
+
+		user.setLastName("LAST ANAME");
+
+		FormattedMessageParser parser = new FormattedMessageParser(null);
 		try {
-			parser.parseFormattedMessage(message, patient,user,encounter);
+			parser.parseFormattedMessage(message, patient, user, encounter);
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
 
-		
 	}
-	
 
 	private Decision onNullDecision;
 
@@ -96,54 +103,67 @@ public class FormattedMessageParser {
 		for (String token : tokens) {
 			// Detect the entity.property tokens
 			if (isEntityValuePair(token)) {
-				String[] pair = token.split("\\.",2);
+				String[] pair = token.split("\\.", 2);
 				String entityName = pair[0];
 				String propertyName = pair[1];
-				
+				String values = "";
+				String resultPropertyVal = "";
 				// Match the key with objects passed
 				try {
 					// Precaution! Turn first character into capital
 					entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
 							+ entityName.substring(1, entityName.length());
 					Object object = getMatchingClassObject(entityName, objects);
-					output.append(getPropertyValue(object, propertyName));
+					try {
+						entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
+								+ entityName.substring(1, entityName.length());
+						object = getMatchingClassObject(entityName, objects);
+						resultPropertyVal = getPropertyValue(object, propertyName).toString();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
+						values = getObsValues(object, propertyName);
+					} else {
+						values = resultPropertyVal;
+					}
+
+					output.append(values);
+					// output.append(getPropertyValue(object, propertyName));
 				} catch (Exception e) {
-					//TODO : if any entity is not available or found then throw Exception 
+					// TODO : if any entity is not available or found then throw Exception
 					// discuss about this issue also
 					e.printStackTrace();
 				}
-			} else if (isEntityValuePairWithCondition(token)){
+			} else if (isEntityValuePairWithCondition(token)) {
 				String[] pair = token.split("\\.");
 				String entityName = pair[0];
 				String propertyName = pair[1];
 				String condition = pair[2];
+				String values = "";
+				String resultPropertyVal = "";
+				Object object = null;
 				try {
 					entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
 							+ entityName.substring(1, entityName.length());
-					Object object = getMatchingClassObject(entityName, objects);
-					String resultPropertyVal = getPropertyValue(object, propertyName).toString();
-					 if (condition.equals("day")) {
-						  String nameOfDay = "";
-						 	if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
-	 		
-						 	/*	for (Observation observation :objects.getClass(). ) {
-							 			if (ValidationUtil.variableMatchesWithConcept(propertyName, observation)) {
-							 			break;
-							 			}
-						 		}*/
-						 		  nameOfDay = getDayName(Long.parseLong(resultPropertyVal));
-							}else{
-								 nameOfDay = getDayName(Long.parseLong(resultPropertyVal));
-							}
-						  output.append(nameOfDay);
-					}else{
-						  output.append(resultPropertyVal);
-					}
+					object = getMatchingClassObject(entityName, objects);
+					resultPropertyVal = getPropertyValue(object, propertyName).toString();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				
-			}else {
+				if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
+					values = getObsValues(object, propertyName);
+				} else {
+					values = resultPropertyVal;
+				}
+
+				if (condition.equals("day") && !values.equals("")) {
+					output.append(getDayName(values));
+				} else {
+					output.append(values);
+				}
+
+			} else {
 				output.append(token);
 			}
 		}
@@ -151,11 +171,53 @@ public class FormattedMessageParser {
 		String result = parseSqlQueries(output.toString());
 		return result;
 	}
-	
-	public String getDayName(long timestamp){
-		DateTime date=new DateTime(timestamp);
-		System.out.println("Week Days :" + DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()));
+
+	public String getObsValues(Object object, String propertyName) {
+		String obsVal = "";
+		if (object instanceof Encounter) {
+			List<Observation> observationList = ((Encounter) object).getObservations();
+			if (observationList != null && observationList.size() > 0) {
+				for (Observation observation : ((Encounter) object).getObservations()) {
+					if (ValidationUtil.variableMatchesWithConcept(propertyName, observation)) {
+						obsVal = getValOfDataType(observation); // observation.getValueDatetime().toString(); //
+						break;
+					}
+				}
+			} else {
+				System.out.print("no observations found against this encounter");
+			}
+		}
+		return obsVal;
+	}
+
+	public String getDayName(String timestamp) {
+		java.util.Date parsedDate = null;
+		try {
+			parsedDate = new SimpleDateFormat("yyyy-MM-dd").parse(timestamp);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		DateTime date = new DateTime(parsedDate.getTime());
+		System.out.println(
+				"Week Days :" + DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()));
 		return DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()).toString();
+	}
+
+	public String getValOfDataType(Observation observation) {
+
+		if (observation.getValueBoolean() != null) {
+			return observation.getValueBoolean().toString();
+		} else if (observation.getValue() != null) {
+			return observation.getValue().toString();
+		} else if (observation.getValueDatetime() != null) {
+			return observation.getValueDatetime().toString();
+		} else if (observation.getValueNumeric() != null) {
+			return observation.getValueNumeric().toString();
+		} else if (observation.getValueCodedName() != null) {
+			return observation.getValueCodedName().toString();
+		} else {
+			return "";
+		}
 	}
 
 	/**
@@ -248,9 +310,11 @@ public class FormattedMessageParser {
 	public boolean isEntityValuePair(String token) {
 		return token.matches("^[\\w]+\\.[\\w]+$");
 	}
-	public boolean isEntityValuePairWithCondition (String token) {
+
+	public boolean isEntityValuePairWithCondition(String token) {
 		return token.matches("^[\\w]+\\.[\\w]+\\.[\\w]+$");
 	}
+
 	/**
 	 * Detect opening and closing parenthesis and tokenize the given string
 	 * 
