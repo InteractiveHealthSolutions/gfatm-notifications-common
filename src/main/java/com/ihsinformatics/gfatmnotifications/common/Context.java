@@ -74,40 +74,39 @@ public class Context {
 				log.severe("Unable to read properties file.");
 				System.exit(-1);
 			}
-			
+
 			createOpenmrsDbConnection();
-			
+
 			createWarehouseDbConnection();
-			
+
 			initialize();
 		} catch (IOException e) {
 			log.severe(e.getMessage());
 			System.exit(-1);
 		}
 	}
-	
-	 private static void createOpenmrsDbConnection(){
-		 
-			String url = getProps().getProperty("openmrs.connection.url", "jdbc:mysql://localhost:3306");
-			String dbName = getProps().getProperty("openmrs.connection.database", "gfatm_dw");
-			String driverName = getProps().getProperty("openmrs.connection.driver_class", "com.mysql.jdbc.Driver");
-			String userName = getProps().getProperty("openmrs.connection.username", "root");
-			String password = getProps().getProperty("openmrs.connection.password");
-			DatabaseUtil openmrsDb = new DatabaseUtil(url, dbName, driverName, userName, password);
-			setOpenmrsDb(openmrsDb);
-	 }
-	 
-	 private static void createWarehouseDbConnection(){
-		 
-			String url = getProps().getProperty("dwh.connection.url", "jdbc:mysql://localhost:3306");
-			String dbName = getProps().getProperty("dwh.connection.database", "gfatm_dw");
-			String driverName = getProps().getProperty("dwh.connection.driver_class", "com.mysql.jdbc.Driver");
-			String userName = getProps().getProperty("dwh.connection.username", "root");
-			String password = getProps().getProperty("dwh.connection.password");
-			DatabaseUtil warehouseDb = new DatabaseUtil(url, dbName, driverName, userName, password);
-			setDwDb(warehouseDb);
-	 }
-	 
+
+	private static void createOpenmrsDbConnection() {
+
+		String url = getProps().getProperty("openmrs.connection.url", "jdbc:mysql://localhost:3306");
+		String dbName = getProps().getProperty("openmrs.connection.database", "gfatm_dw");
+		String driverName = getProps().getProperty("openmrs.connection.driver_class", "com.mysql.jdbc.Driver");
+		String userName = getProps().getProperty("openmrs.connection.username", "root");
+		String password = getProps().getProperty("openmrs.connection.password");
+		DatabaseUtil openmrsDb = new DatabaseUtil(url, dbName, driverName, userName, password);
+		setOpenmrsDb(openmrsDb);
+	}
+
+	private static void createWarehouseDbConnection() {
+
+		String url = getProps().getProperty("dwh.connection.url", "jdbc:mysql://localhost:3306");
+		String dbName = getProps().getProperty("dwh.connection.database", "gfatm_dw");
+		String driverName = getProps().getProperty("dwh.connection.driver_class", "com.mysql.jdbc.Driver");
+		String userName = getProps().getProperty("dwh.connection.username", "root");
+		String password = getProps().getProperty("dwh.connection.password");
+		DatabaseUtil warehouseDb = new DatabaseUtil(url, dbName, driverName, userName, password);
+		setDwDb(warehouseDb);
+	}
 
 	private Context() {
 	}
@@ -246,7 +245,7 @@ public class Context {
 	public static void setDwDb(DatabaseUtil getDwDb) {
 		Context.dbDwUtil = getDwDb;
 	}
-	
+
 	/**
 	 * @return the localDb
 	 */
@@ -260,9 +259,6 @@ public class Context {
 	public static void setOpenmrsDb(DatabaseUtil openmrsDb) {
 		Context.dbOpenmrsUtil = openmrsDb;
 	}
-	
-	
-	
 
 	/**
 	 * Executes query and converts result set into JSON string
@@ -274,13 +270,13 @@ public class Context {
 	 * @throws ClassNotFoundException
 	 * @throws SQLException
 	 */
-	public static String queryToJson(String query,DatabaseUtil dbUtil) {
+	public static String queryToJson(String query, DatabaseUtil dbUtil) {
 		List<Map<String, Object>> list = null;
 		QueryRunner queryRunner = new QueryRunner();
 		builder = new GsonBuilder().registerTypeAdapter(Date.class, new DateDeserializer())
 				.registerTypeAdapter(Date.class, new DateSerializer()).setPrettyPrinting().serializeNulls();
 		try {
-		
+
 			list = queryRunner.query(dbUtil.getConnection(), query, new MapListHandler());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -329,16 +325,16 @@ public class Context {
 	public static void loadEncounterTypes(DatabaseUtil dbUtil) {
 		encounterTypes = new HashMap<Integer, String>();
 		try {
-		StringBuilder query = new StringBuilder(
-				"SELECT encounter_type_id as encounterTypeId, name FROM encounter_type where retired = 0");
-		Object[][] data = dbUtil.getTableData(query.toString());
-		if (data == null) {
-			return;
-		}
-		for (Object[] element : data) {
-			encounterTypes.put(Integer.parseInt(element[0].toString()), element[1].toString());
-		}
-		}catch(Exception e) {
+			StringBuilder query = new StringBuilder(
+					"SELECT encounter_type_id as encounterTypeId, name FROM encounter_type where retired = 0");
+			Object[][] data = dbUtil.getTableData(query.toString());
+			if (data == null) {
+				return;
+			}
+			for (Object[] element : data) {
+				encounterTypes.put(Integer.parseInt(element[0].toString()), element[1].toString());
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -379,7 +375,7 @@ public class Context {
 				"left outer join location_attribute as st on st.location_id = l.location_id and st.attribute_type_id = 13 and st.voided = 0 ");
 		query.append("where l.retired = 0");
 
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Location>>() {
 		}.getType();
 		locations = builder.create().fromJson(jsonString, listType);
@@ -423,7 +419,7 @@ public class Context {
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
 		query.append("where u.retired = 0");
 
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<User>>() {
 		}.getType();
 		users = builder.create().fromJson(jsonString, listType);
@@ -447,7 +443,7 @@ public class Context {
 				"left outer join person_attribute as sc on sc.person_id = u.person_id and sc.person_attribute_type_id = 12 and sc.voided = 0 ");
 		query.append(
 				"having (concat(ifnull(emailAddress, ''), ifnull(primaryContact, ''), ifnull(secondaryContact, ''))) <> ''");
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Contact>>() {
 		}.getType();
 		userContacts = builder.create().fromJson(jsonString, listType);
@@ -457,6 +453,16 @@ public class Context {
 	 * Fetch all patients from DB and store locally
 	 */
 	public static void loadPatients(DatabaseUtil dbUtil) {
+		int[] encounterTypes= {104,29,67,4,7};
+		patients = new ArrayList<>(500);
+		for(int i=0;i<encounterTypes.length;i++) {
+		List<Patient> tempList = loadChildhoodPatients(dbUtil,encounterTypes[i]);
+		patients.addAll(tempList);
+		}
+	
+	}
+
+	private static List<Patient> loadChildhoodPatients(DatabaseUtil dbUtil,int encounterTypeId) {
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select  pt.patient_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
@@ -468,7 +474,8 @@ public class Context {
 				"nic.value as nationalID, cnicO.value as nationalIDOwner,gn.value as guardianName,ts.value as treatmentSupporter,oin.value as otherIdentificationNumber,tg.value as transgender,");
 		query.append(
 				"pat.value as patientType,pt.creator as creator , pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark,");
-		query.append("pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
+		query.append(
+				"pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
 		query.append(
 				"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
 		query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided =0 ");
@@ -515,19 +522,14 @@ public class Context {
 				"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
-		
-		query.append(" 	left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " +  //and cons.value_coded=1065 
-				"        and cons.voided = 0   " );
-		query.append("inner join encounter as e \r\n" + 
-				"        on e.patient_id=pt.patient_id and e.voided=0\r\n" + 
-				"        where  pt.voided=0 and ( e.encounter_type=104 or e.encounter_type=29 or e.encounter_type=67 or e.encounter_type=7\r\n" + 
-				"        or e.encounter_type=4) group by pt.patient_id    ;\r\n   " + 
-				"");
-		
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		query.append("left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
+		query.append("inner join encounter as e " + "on e.patient_id=pt.patient_id and e.voided=0 "
+				+ " where pt.voided=0 and  e.encounter_type="+encounterTypeId+" group by pt.patient_id");
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
-		patients = builder.create().fromJson(jsonString, listType);
+		List<Patient> tempList = builder.create().fromJson(jsonString, listType);
+		return tempList;
 	}
 
 	/**
@@ -536,7 +538,7 @@ public class Context {
 	 * @param encounterId
 	 * @return
 	 */
-	public static Encounter getEncounter(int encounterId,DatabaseUtil dbUtil) {
+	public static Encounter getEncounter(int encounterId, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
@@ -556,7 +558,7 @@ public class Context {
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append("where e.encounter_id = " + encounterId);
 		query.append(" and e.voided = 0 ");
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type type = new TypeToken<List<Encounter>>() {
 		}.getType();
 		List<Encounter> encounter = builder.create().fromJson(jsonString, type);
@@ -571,23 +573,27 @@ public class Context {
 	 * @param type
 	 * @return
 	 */
-	public static List<Encounter> getEncounters(DateTime from, DateTime to, Integer type,DatabaseUtil dbUtil) {
+	public static List<Encounter> getEncounters(DateTime from, DateTime to, Integer type, DatabaseUtil dbUtil) {
 		if (from == null || to == null) {
 			return null;
 		}
 		String sqlFrom = DateTimeUtil.toSqlDateTimeString(from.toDate());
 		String sqlTo = DateTimeUtil.toSqlDateTimeString(to.toDate());
 		StringBuilder filter = new StringBuilder();
-		filter.append("where e.voided = 0 and e.date_created between ");
+		filter.append("where e.voided = 0 and e.encounter_datetime between ");
 		filter.append("timestamp('" + sqlFrom + "') ");
 		filter.append("and ");
 		filter.append("timestamp('" + sqlTo + "') ");
-		//commited 24hours filter as per discussion 
-		/*		filter.append("and ");
-		filter.append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24 ");*/
+
+		// commited 24hours filter as per discussion
+		/*
+		 * filter.append("and "); filter.
+		 * append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24 ");
+		 */
 		if (type != null) {
 			filter.append(" and e.encounter_type=" + type);
 		}
+		filter.append(" order by e.encounter_datetime desc");
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
@@ -609,14 +615,15 @@ public class Context {
 
 		// Convert query into json sring
 		System.out.println(query.toString());
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<ArrayList<Encounter>>() {
 		}.getType();
 		List<Encounter> encounters = builder.create().fromJson(jsonString, listType);
 		return encounters;
 	}
 
-	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId,DatabaseUtil dbUtil) {
+	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId,
+			DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
@@ -636,29 +643,30 @@ public class Context {
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append("where e.patient_id = (select patient_id from patient_identifier where identifier = '"
 				+ patientIdentifier + "')");
-		query.append("and e.encounter_type = " + encounterTypeId + " and e.voided = 0  order by e.encounter_datetime desc");
+		query.append(
+				"and e.encounter_type = " + encounterTypeId + " and e.voided = 0  order by e.encounter_datetime desc");
 
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type type = new TypeToken<List<Encounter>>() {
 		}.getType();
 		List<Encounter> encounter = builder.create().fromJson(jsonString, type);
 		return encounter.get(0);
 	}
 
-	public static List<Observation> getEncounterObservations(Encounter encounter,DatabaseUtil dbUtil) {
+	public static List<Observation> getEncounterObservations(Encounter encounter, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, c.name as conceptShortName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, vn.name as valueCodedName, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
 		query.append("inner join encounter as e on e.encounter_id = o.encounter_id ");
 		query.append(
-				"inner join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT'  ");
+				"LEFT join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT'  ");
 		query.append(
-				"inner join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
+				"LEFT join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
 		query.append(
-				"inner join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
+				"LEFT join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());
 
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type type = new TypeToken<List<Observation>>() {
 		}.getType();
 		List<Observation> observations = builder.create().fromJson(jsonString, type);
@@ -703,7 +711,7 @@ public class Context {
 
 	public static User getUserByUsername(String username, DatabaseUtil dbUtil) {
 		if (getUsers().isEmpty()) {
-			loadUsers(  dbUtil);
+			loadUsers(dbUtil);
 		}
 		for (User user : getUsers()) {
 			if (user.getUsername().equals(username)) {
@@ -713,11 +721,11 @@ public class Context {
 		return null;
 	}
 
-	public static String[] getUserRolesByUser(User user,DatabaseUtil dbUtil) {
+	public static String[] getUserRolesByUser(User user, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append("select * from user_role ur ");
 		query.append("where user_id='" + user.getUserId() + "'");
-		String jsonString = queryToJson(query.toString(),dbUtil);
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type type = new TypeToken<String[]>() {
 		}.getType();
 		userRoles = builder.create().fromJson(jsonString, type);
@@ -725,8 +733,8 @@ public class Context {
 	}
 
 	public static Contact getContactByLocationId(Integer locationId, DatabaseUtil dbUtil) {
-		Location location = getLocationById(locationId,dbUtil);
-		return getContactByLocationName(location.getName(),dbUtil);
+		Location location = getLocationById(locationId, dbUtil);
+		return getContactByLocationName(location.getName(), dbUtil);
 	}
 
 	public static Contact getContactByLocationName(String locationName, DatabaseUtil dbUtil) {
@@ -746,24 +754,24 @@ public class Context {
 			loadPatients(dbUtil);
 		}
 		try {
-		for (Patient patient : getPatients()) {
-			if(patient==null) {
-				continue;
+			for (Patient patient : getPatients()) {
+				if (patient == null) {
+					continue;
+				}
+				if (patient.getPatientIdentifier().equalsIgnoreCase(patientIdentifier)) {
+					return patient;
+				}
 			}
-			if (patient.getPatientIdentifier().equalsIgnoreCase(patientIdentifier)) {
-				return patient;
-			}
-		}
-		Patient patient=getPatientByPatientId(patientIdentifier,dbUtil);
-		getPatients().add(patient);
-		return patient;
-		}catch(Exception e) {
+			Patient patient = getPatientByPatientId(patientIdentifier, dbUtil);
+			getPatients().add(patient);
+			return patient;
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	public static Contact getUserContactByLocationId(int locationId,DatabaseUtil dbUtil) {
+	public static Contact getUserContactByLocationId(int locationId, DatabaseUtil dbUtil) {
 		if (getUserContacts().isEmpty()) {
 			loadContacts(dbUtil);
 		}
@@ -776,12 +784,12 @@ public class Context {
 
 	}
 
-	public static Contact getUserContactByLocationName(String locationName,DatabaseUtil dbUtil) {
-		Location location = getLocationByName(locationName,dbUtil);
+	public static Contact getUserContactByLocationName(String locationName, DatabaseUtil dbUtil) {
+		Location location = getLocationByName(locationName, dbUtil);
 		if (location == null) {
 			return null;
 		}
-		return getUserContactByLocationId(location.getLocationId(),dbUtil);
+		return getUserContactByLocationId(location.getLocationId(), dbUtil);
 	}
 
 	/**
@@ -882,7 +890,7 @@ public class Context {
 	public static void setPatients(List<Patient> patients) {
 		Context.patients = patients;
 	}
-	
+
 	public static Date calculateScheduleDate(DateTime referenceDate, Double plusMinus, String plusMinusUnit) {
 		Date returnDate = null;
 		if (referenceDate == null) {
@@ -890,27 +898,28 @@ public class Context {
 		}
 		if (plusMinusUnit.equalsIgnoreCase("hours")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusHours(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.minusHours(Math.abs(plusMinus.intValue())).toDate();
 			} else {
-				returnDate = referenceDate.plusHours(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.plusHours(Math.abs(plusMinus.intValue())).toDate();
 			}
 		} else if (plusMinusUnit.equalsIgnoreCase("days")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusDays(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.minusDays(Math.abs(plusMinus.intValue())).toDate();
 			} else {
-				returnDate = referenceDate.plusDays(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.plusDays(Math.abs(plusMinus.intValue())).toDate();
 			}
 		} else if (plusMinusUnit.equalsIgnoreCase("months")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusMonths(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.minusMonths(Math.abs(plusMinus.intValue())).toDate();
 			} else {
-				returnDate = referenceDate.plusMonths(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.plusMonths(Math.abs(plusMinus.intValue())).toDate();
 			}
 		}
+		
 		return returnDate;
 	}
 
-	public static  DateTime getReferenceDate(String scheduleDate, Encounter encounter) throws Exception {
+	public static DateTime getReferenceDate(String scheduleDate, Encounter encounter) throws Exception {
 
 		DateTime referenceDate = null;
 		FormattedMessageParser formattedMessageParser = new FormattedMessageParser(Decision.SKIP);
@@ -943,7 +952,7 @@ public class Context {
 	}
 
 	public static Patient getPatientByPatientId(String identifier, DatabaseUtil dbUtil) {
-		
+
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select  pt.patient_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
@@ -955,7 +964,8 @@ public class Context {
 				"nic.value as nationalID, cnicO.value as nationalIDOwner,gn.value as guardianName,ts.value as treatmentSupporter,oin.value as otherIdentificationNumber,tg.value as transgender,");
 		query.append(
 				"pat.value as patientType,pt.creator as creator , pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark,");
-		query.append("pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
+		query.append(
+				"pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
 		query.append(
 				"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
 		query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided =0 ");
@@ -1002,16 +1012,35 @@ public class Context {
 				"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
-		
-		query.append(" 	left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " +  //and cons.value_coded=1065 
-				"        and cons.voided = 0   " );
-		query.append(" where pi.identifier ='"+identifier+ "' ; " + 
-				"");
-		
-		String jsonString = queryToJson(query.toString(),dbUtil);
+
+		query.append(" 	left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 " + // and
+																											// cons.value_coded=1065
+				"        and cons.voided = 0   ");
+		query.append(" where pi.identifier ='" + identifier + "' ; " + "");
+
+		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
 		List<Patient> patients = builder.create().fromJson(jsonString, listType);
-		return patients.size()>0?patients.get(0):null;
+		return patients.size() > 0 ? patients.get(0) : null;
 	}
+/*
+	public static String getRelationshipId(String id,DatabaseUtil dbUtil) {
+		try {
+		StringBuilder query=new StringBuilder();
+		query.append("SELECT * FROM relationship_type where a_is_to_b='"+id+"';");
+		
+		Object[][] data = dbUtil.getTableData(query.toString());
+		if (data == null) {
+			return;
+		}
+		for (Object[] element : data) {
+			encounterTypes.put(Integer.parseInt(element[0].toString()), element[1].toString());
+		}
+	} catch(Exception e){
+		
+	}
+		String jsonString=queryToJson(query.toString(), dbUtil);
+		return jsonString;
+	}*/
 }

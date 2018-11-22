@@ -13,11 +13,10 @@ package com.ihsinformatics.gfatmnotifications.common.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -26,8 +25,8 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.poi.hpsf.Date;
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
@@ -123,7 +122,9 @@ public class FormattedMessageParser {
 						e.printStackTrace();
 					}
 					if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
-						values = getObsValues(object, propertyName);
+						String val =getObsValues(object, propertyName);
+						values = checkDateTimeFormat(val);
+						
 					} else {
 						values = resultPropertyVal;
 					}
@@ -369,5 +370,37 @@ public class FormattedMessageParser {
 		}
 		return true;
 	}
+	
+	public String checkDateTimeFormat(String inputData) {
 
+		String[] patterns = { "yyyy-MM-dd HH:mm:ss" };
+		boolean check = false;
+		for (int i = 0; i < patterns.length; i++) {
+			try {
+				DateTime.parse(inputData, DateTimeFormat.forPattern(patterns[i]));
+				check = true;
+				break;
+			} catch (Exception e) {
+				check = false;
+				break;
+			}
+		}
+		if (check) {
+			// Kindly revise this code...
+			SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
+			SimpleDateFormat format2 = new SimpleDateFormat("dd-MM-yyyy");
+			Date date;
+			try {
+				String dateString = inputData.substring(0, 10);
+				date = format1.parse(dateString);
+				return format2.format(date);
+			} catch (ParseException e) {
+				return "";
+			}
+		} else {
+			return inputData;
+		}
+	}
+
+	
 }

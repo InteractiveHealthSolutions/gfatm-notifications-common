@@ -233,8 +233,19 @@ public class Patient {
 		if (healthCenter == null || healthCenter.equals("")) {
 			return null;
 		} else {
-			return Context.getLocationById(Integer.parseInt(healthCenter.trim()), Context.getOpenmrsDb()).getName()
+			return Context.getLocationById(Integer.parseInt(healthCenter.trim()), Context.getOpenmrsDb()).getDescription()
 					.trim();
+		} 
+	}
+	
+	/**
+	 * @return the healthCenter
+	 */
+	public String getHealthCenterId() {
+		if (healthCenter == null || healthCenter.equals("")) {
+			return null;
+		} else {
+			return healthCenter.trim();
 		} 
 	}
 

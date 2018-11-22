@@ -39,7 +39,7 @@ public class CsvFileWriter {
 					fileWriter.append(COMMA_DELIMITER);
 					fileWriter.append(message.getProjectName());
 					fileWriter.append(COMMA_DELIMITER);
-					fileWriter.append(DateTimeUtil.toSqlDateTimeString(message.getSendOn()));
+					fileWriter.append(message.getSendOn());
 					fileWriter.append(NEW_LINE_SEPARATOR);
 				}
 
