@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.MapListHandler;
 import org.joda.time.DateTime;
@@ -74,16 +73,18 @@ public class Context {
 				log.severe("Unable to read properties file.");
 				System.exit(-1);
 			}
-
+			log.info("Loading data...");
 			createOpenmrsDbConnection();
-
 			createWarehouseDbConnection();
-
-			initialize();
+			initialize(false, false);
+			log.info("Initialization complete.");
 		} catch (IOException e) {
 			log.severe(e.getMessage());
 			System.exit(-1);
 		}
+	}
+
+	private Context() {
 	}
 
 	private static void createOpenmrsDbConnection() {
@@ -108,33 +109,45 @@ public class Context {
 		setDwDb(warehouseDb);
 	}
 
-	private Context() {
+	/**
+	 * See overloaded method Context.initialize(boolean, boolean)
+	 * 
+	 * @throws IOException
+	 */
+	public static void initialize() throws IOException {
+		initialize(true, true);
 	}
 
 	/**
 	 * This method reloads metadata only if the list objects are null. In order to
 	 * explicitly load metadata, call respective load...() methods
 	 * 
+	 * @param initPatientData
+	 * @param initRuleBook
 	 * @throws IOException
 	 */
-	public static void initialize() throws IOException {
+	public static void initialize(boolean initPatientData, boolean initRuleBook)
+			throws IOException {
+		DateTime start = new DateTime();
 		if (encounterTypes == null) {
-			loadEncounterTypes(Context.getOpenmrsDb());
+			loadEncounterTypes(Context.getDwDb());
 		}
 		if (users == null) {
-			loadUsers(Context.getOpenmrsDb());
+			loadUsers(Context.getDwDb());
 		}
 		if (userContacts == null) {
-			loadContacts(Context.getOpenmrsDb());
+			loadContacts(Context.getDwDb());
 		}
 		if (locations == null) {
-			loadLocations(Context.getOpenmrsDb());
+			loadLocations(Context.getDwDb());
 		}
-		if (patients == null) {
+		if (initPatientData && patients == null) {
 			loadPatients(Context.getOpenmrsDb());
 		}
-		if (ruleBook == null) {
+		if (initRuleBook && ruleBook == null) {
 			loadRuleBook();
+			System.out.println("It took me: " + new DateTime().minus(start.getMillis()).getMillis()
+					+ " milliseconds to load data and rules.");
 		}
 	}
 
@@ -453,16 +466,6 @@ public class Context {
 	 * Fetch all patients from DB and store locally
 	 */
 	public static void loadPatients(DatabaseUtil dbUtil) {
-		int[] encounterTypes= {104,29,67,4,7};
-		patients = new ArrayList<>(500);
-		for(int i=0;i<encounterTypes.length;i++) {
-		List<Patient> tempList = loadChildhoodPatients(dbUtil,encounterTypes[i]);
-		patients.addAll(tempList);
-		}
-	
-	}
-
-	private static List<Patient> loadChildhoodPatients(DatabaseUtil dbUtil,int encounterTypeId) {
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select  pt.patient_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
@@ -522,14 +525,17 @@ public class Context {
 				"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
-		query.append("left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
-		query.append("inner join encounter as e " + "on e.patient_id=pt.patient_id and e.voided=0 "
-				+ " where pt.voided=0 and  e.encounter_type="+encounterTypeId+" group by pt.patient_id");
+		query.append("left join obs as cons on pa.person_id=cons.person_id and cons.concept_id = 164700 "
+				+ /* and cons.value_coded=1065 */
+				"and cons.voided = 0 ");
+		query.append("where pt.voided = 0 ");
+		query.append(
+				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and encounter_type in (4, 7, 29, 67, 104) and datediff(current_date(), encounter_datetime) < 100) ");
+		query.append("group by pt.patient_id ");
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
-		List<Patient> tempList = builder.create().fromJson(jsonString, listType);
-		return tempList;
+		patients = builder.create().fromJson(jsonString, listType);
 	}
 
 	/**
@@ -580,11 +586,10 @@ public class Context {
 		String sqlFrom = DateTimeUtil.toSqlDateTimeString(from.toDate());
 		String sqlTo = DateTimeUtil.toSqlDateTimeString(to.toDate());
 		StringBuilder filter = new StringBuilder();
-		filter.append("where e.voided = 0 and e.encounter_datetime between ");
+		filter.append("where e.voided = 0 and e.date_created between ");
 		filter.append("timestamp('" + sqlFrom + "') ");
 		filter.append("and ");
 		filter.append("timestamp('" + sqlTo + "') ");
-
 		// commited 24hours filter as per discussion
 		/*
 		 * filter.append("and "); filter.
@@ -593,7 +598,6 @@ public class Context {
 		if (type != null) {
 			filter.append(" and e.encounter_type=" + type);
 		}
-		filter.append(" order by e.encounter_datetime desc");
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
@@ -659,11 +663,11 @@ public class Context {
 				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, c.name as conceptShortName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, vn.name as valueCodedName, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
 		query.append("inner join encounter as e on e.encounter_id = o.encounter_id ");
 		query.append(
-				"LEFT join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT'  ");
+				"inner join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT'  ");
 		query.append(
-				"LEFT join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
+				"inner join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
 		query.append(
-				"LEFT join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
+				"inner join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());
 
 		String jsonString = queryToJson(query.toString(), dbUtil);
@@ -898,24 +902,23 @@ public class Context {
 		}
 		if (plusMinusUnit.equalsIgnoreCase("hours")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusHours(Math.abs(plusMinus.intValue())).toDate();
+				returnDate = referenceDate.minusHours(plusMinus.intValue()).toDate();
 			} else {
-				returnDate = referenceDate.plusHours(Math.abs(plusMinus.intValue())).toDate();
+				returnDate = referenceDate.plusHours(plusMinus.intValue()).toDate();
 			}
 		} else if (plusMinusUnit.equalsIgnoreCase("days")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusDays(Math.abs(plusMinus.intValue())).toDate();
+				returnDate = referenceDate.minusDays(plusMinus.intValue()).toDate();
 			} else {
-				returnDate = referenceDate.plusDays(Math.abs(plusMinus.intValue())).toDate();
+				returnDate = referenceDate.plusDays(plusMinus.intValue()).toDate();
 			}
 		} else if (plusMinusUnit.equalsIgnoreCase("months")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusMonths(Math.abs(plusMinus.intValue())).toDate();
+				returnDate = referenceDate.minusMonths(plusMinus.intValue()).toDate();
 			} else {
-				returnDate = referenceDate.plusMonths(Math.abs(plusMinus.intValue())).toDate();
+				returnDate = referenceDate.plusMonths(plusMinus.intValue()).toDate();
 			}
 		}
-		
 		return returnDate;
 	}
 
@@ -1024,23 +1027,4 @@ public class Context {
 		List<Patient> patients = builder.create().fromJson(jsonString, listType);
 		return patients.size() > 0 ? patients.get(0) : null;
 	}
-/*
-	public static String getRelationshipId(String id,DatabaseUtil dbUtil) {
-		try {
-		StringBuilder query=new StringBuilder();
-		query.append("SELECT * FROM relationship_type where a_is_to_b='"+id+"';");
-		
-		Object[][] data = dbUtil.getTableData(query.toString());
-		if (data == null) {
-			return;
-		}
-		for (Object[] element : data) {
-			encounterTypes.put(Integer.parseInt(element[0].toString()), element[1].toString());
-		}
-	} catch(Exception e){
-		
-	}
-		String jsonString=queryToJson(query.toString(), dbUtil);
-		return jsonString;
-	}*/
 }

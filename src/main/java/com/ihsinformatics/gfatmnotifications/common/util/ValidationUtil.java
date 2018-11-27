@@ -118,28 +118,27 @@ public class ValidationUtil {
 	 * @throws InvalidPropertiesFormatException
 	 */
 	public static boolean validateRange(String range, Double value) throws InvalidPropertiesFormatException {
+		boolean valid = false;
 		if (!range.matches("^[0-9.,-]+")) {
 			throw new InvalidPropertiesFormatException(
 					"Invalid format provided for validation range. Must be a list of hyphenated or comma-separated tuples of numbers (1-10; 2.2-3.0; 1,3,5; 1-5,7,9).");
 		}
-		// If there are multiple tuples, then recurse
-		if (range.contains(",")) {
-			String[] parts = range.split(",");
-			return validateRange(parts[0], value) || validateRange(parts[1], value);
-		}
-		// Otherwise, it's just two numbers and a hyphen
-		else {
-			if (range.contains("-")) {
-				String[] parts = range.split("-");
+		// Break into tuples
+		String[] tuples = range.split(",");
+		for (String tuple : tuples) {
+			if (tuple.contains("-")) {
+				String[] parts = tuple.split("-");
 				double min = Double.parseDouble(parts[0]);
 				double max = Double.parseDouble(parts[1]);
-				return (value >= min && value <= max);
+				valid = (value >= min && value <= max);
+			} else {
+				valid = (Double.compare(value.doubleValue(), Double.parseDouble(tuple)) == 0);
 			}
-			// In case of a standalone value, just match primitive type
-			else {
-				return (Double.compare(value.doubleValue(), Double.parseDouble(range)) == 0);
+			if (valid) {
+				return true;
 			}
 		}
+		return false;
 	}
 
 	/**
@@ -151,14 +150,10 @@ public class ValidationUtil {
 	 * @throws InvalidPropertiesFormatException
 	 */
 	public static boolean validateList(String list, String value) throws InvalidPropertiesFormatException {
-
-		// TODO commited for test only
-		/*
-		 * if (!list.matches("^[A-Za-z0-9,_\\-\\s]+")) { throw new
-		 * InvalidPropertiesFormatException(
-		 * "Invalid format provided for validation list. Must be a comma-separated list of alpha-numeric values (white space, hypen and underscore allowed)."
-		 * ); }
-		 */
+		if (!list.matches("^[A-Za-z0-9,_\\-\\s]+")) {
+			throw new InvalidPropertiesFormatException(
+					"Invalid format provided for validation list. Must be a comma-separated list of alpha-numeric values (white space, hypen and underscore allowed).");
+		}
 		String[] values = list.split(",");
 		for (int i = 0; i < values.length; i++) {
 			if (value.trim().equalsIgnoreCase(values[i].trim()))
@@ -286,7 +281,6 @@ public class ValidationUtil {
 		if (rule.getStopCondition() == null || rule.getStopCondition().isEmpty()) {
 			return false;
 		}
-		
 		String conditions = rule.getStopCondition();
 		String orPattern = "(.)+OR(.)+";
 		String andPattern = "(.)+AND(.)+";
@@ -308,7 +302,6 @@ public class ValidationUtil {
 					return validateSingleStopCondition(condition, patient, location, dbUtil);
 				}
 			}
-
 		}
 		if (conditions.matches(orPattern)) {
 			String[] orConditions = conditions.split("( )?OR( )?");
@@ -320,8 +313,8 @@ public class ValidationUtil {
 				}
 			}
 		} else if (conditions.matches(andPattern)) {
-			String[] orConditions = conditions.split("( )?AND( )?");
-			for (String condition : orConditions) {
+			String[] andConditions = conditions.split("( )?AND( )?");
+			for (String condition : andConditions) {
 				// No need to proceed even if one condition is false
 				if (!validateSingleStopCondition(condition, patient, location, dbUtil)) {
 					return false;
@@ -331,7 +324,6 @@ public class ValidationUtil {
 		} else {
 			return validateSingleStopCondition(conditions, patient, location, dbUtil);
 		}
-
 		return false;
 	}
 
@@ -340,16 +332,14 @@ public class ValidationUtil {
 		boolean result = false;
 		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
 		if (jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")) {
-
 			String entity = jsonObject.getString("entity");
-
 			String validationType = jsonObject.getString("validate");
 			String property = jsonObject.getString("property");
 			String expectedValue = jsonObject.getString("value");
 			String actualValue = null;
 			String encounter = jsonObject.getString("encounter");
 			Encounter baseEncounter = null;
-			if (encounter != null || (!encounter.isEmpty())) {
+			if (encounter != null && !(encounter.isEmpty())) {
 				try {
 					baseEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
 							Context.getEncounterTypeId(encounter), dbUtil);
@@ -388,6 +378,8 @@ public class ValidationUtil {
 				}
 				if (validationType.equals("VALUE")) {
 					return actualValue.equalsIgnoreCase(expectedValue);
+				} else if (validationType.equalsIgnoreCase("NOTEQUALS")) {
+					return !actualValue.equalsIgnoreCase(expectedValue);
 				} else if (validationType.equalsIgnoreCase("RANGE")) {
 					Double valueDouble = Double.parseDouble(actualValue);
 					return ValidationUtil.validateRange(expectedValue, valueDouble);
@@ -401,7 +393,7 @@ public class ValidationUtil {
 						return true;
 					}
 					return false;
-				} else if (validationType.equalsIgnoreCase("List")) {
+				} else if (validationType.equalsIgnoreCase("LIST")) {
 					return ValidationUtil.validateList(expectedValue, actualValue);
 
 				}
