@@ -170,6 +170,14 @@ public class Observation {
 		this.uuid = uuid;
 	}
 
+	public String getConceptShortName() {
+		return conceptShortName;
+	}
+
+	public void setConceptShortName(String conceptShortName) {
+		this.conceptShortName = conceptShortName;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -181,13 +189,4 @@ public class Observation {
 				+ ", " + obsDatetime + ", " + locationId + ", " + valueNumeric + ", " + valueBoolean + ", " + valueCoded
 				+ ", " + valueCodedName + ", " + valueDatetime + ", " + valueText + ", " + uuid;
 	}
-
-	public String getConceptShortName() {
-		return conceptShortName;
-	}
-
-	public void setConceptShortName(String conceptShortName) {
-		this.conceptShortName = conceptShortName;
-	}
-
 }

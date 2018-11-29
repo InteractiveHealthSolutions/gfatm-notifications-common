@@ -39,7 +39,18 @@ import com.ihsinformatics.util.RegexUtil;
  *
  */
 public class ValidationUtil {
+	public static final String PATIENT_ID_REGEX = "[0-9A-Za-z] {5}-[0-9]";
 	private static final Logger log = Logger.getLogger(Class.class.getName());
+
+	/**
+	 * Checks whether given patient ID matches with the ID scheme or not.
+	 * 
+	 * @param patientId
+	 * @return
+	 */
+	public static boolean isValidPatientId(String patientId) {
+		return patientId.matches(PATIENT_ID_REGEX);
+	}
 
 	/**
 	 * Checks whether given email address is valid or not.
@@ -412,9 +423,7 @@ public class ValidationUtil {
 			return false;
 		} else if (jsonObject.has("entity") && jsonObject.has("encounter") && jsonObject.has("validate")
 				&& jsonObject.has("after")) {
-
 			String entity = jsonObject.getString("entity");
-
 			String validationType = jsonObject.getString("validate");
 			String encounter = jsonObject.getString("encounter");
 			String afterEncounterType = jsonObject.getString("after");
@@ -428,7 +437,6 @@ public class ValidationUtil {
 					e.printStackTrace();
 					return false;
 				}
-
 				// Check the type of validation and call respective method
 				if (validationType.equalsIgnoreCase("Encounter")) {
 					Encounter afterEncounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
@@ -437,8 +445,7 @@ public class ValidationUtil {
 						return true;
 					}
 				}
-
-				// 0log.severe("Condition must contain all four required keys: entity, validate,
+				// log.severe("Condition must contain all four required keys: entity, validate,
 				// after and encounter ");
 				return false;
 			}

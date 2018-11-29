@@ -4,8 +4,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
+import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.Message;
-import com.ihsinformatics.util.DateTimeUtil;
 
 public class CsvFileWriter {
 
@@ -33,11 +33,11 @@ public class CsvFileWriter {
 				
 				//Write a new student object list to the CSV file
 				for (Message message : messageList) {
-					fileWriter.append(message.getContactNumber());
+					fileWriter.append(message.getContact());
 					fileWriter.append(COMMA_DELIMITER);
 					fileWriter.append(message.getPreparedMessage());
 					fileWriter.append(COMMA_DELIMITER);
-					fileWriter.append(message.getProjectName());
+					fileWriter.append(Context.PROJECT_NAME);
 					fileWriter.append(COMMA_DELIMITER);
 					fileWriter.append(message.getSendOn());
 					fileWriter.append(NEW_LINE_SEPARATOR);
