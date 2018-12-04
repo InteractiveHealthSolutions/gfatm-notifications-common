@@ -15,11 +15,14 @@ import java.util.IllegalFormatException;
 import java.util.List;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
+import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.Relationship;
 import com.ihsinformatics.gfatmnotifications.common.model.Rule;
+import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil;
 import com.ihsinformatics.util.DatabaseUtil;
 
@@ -29,7 +32,10 @@ import com.ihsinformatics.util.DatabaseUtil;
  */
 public class SearchService {
 
-	public SearchService() {
+	private DatabaseUtil dbUtil;
+
+	public SearchService(DatabaseUtil dbUtil) {
+		this.dbUtil = dbUtil;
 	}
 
 	/**
@@ -41,8 +47,7 @@ public class SearchService {
 	 * @param rule
 	 * @return
 	 */
-	public String searchContactFromRule(Patient patient, Encounter encounter, Rule rule, DatabaseUtil dbUtil)
-			throws IllegalFormatException {
+	public String searchContactFromRule(Patient patient, Encounter encounter, Rule rule) throws IllegalFormatException {
 		// TODO: Complete and test this
 		String exceptionMessage = rule.getSendTo()
 				+ " is not in correct search format. Please specify it like: Search Encounter.referral_site, Search Relationship.index, Search Relationship.doctor, etc.";
@@ -52,33 +57,105 @@ public class SearchService {
 				throw new IllegalArgumentException(exceptionMessage);
 			}
 			String[] keyValue = parts[1].split(".");
+			String key = keyValue[0];
+			String value = keyValue[1];
 			if (keyValue.length < 2) {
 				throw new IllegalArgumentException(exceptionMessage);
 			}
+			BaseEntity entity = null;
 			// If the search term is a relationship, then search in DB
-			if (keyValue[0].equalsIgnoreCase("relationship")) {
-				Integer relationshipTypeId = Context.getRelationshipTypeId(parts[0]);
-				List<Relationship> relationships = Context.getRelationshipsByPersonId(relationshipTypeId,
-						patient.getPersonId(), dbUtil);
-				Relationship relationship = relationships.get(0);
-				Integer relative = null;
-				if (patient.getPersonId().equals(relationship.getPersonA())) {
-					relative = relationship.getPersonB();
-				} else {
-					relative = relationship.getPersonA();
-				}
-				if (relative != null) {
-				}
-			} else if (keyValue[0].equalsIgnoreCase("encounter")) {
-				for (Observation obs : encounter.getObservations()) {
-					if (ValidationUtil.variableMatchesWithConcept(keyValue[1], obs)) {
-					}
-				}
+			if (key.equalsIgnoreCase("relationship")) {
+				entity = searchEntityFromRelationship(patient, value);
+			} else if (key.equalsIgnoreCase("encounter")) {
+				entity = searchEntityFromEncounter(encounter, value);
+			} else if (key.equalsIgnoreCase("patient")) {
+				entity = searchEntityFromPatient(patient, value);
 			}
+			return getPrimaryContactFromEntity(entity);
 		} else {
 			throw new IllegalArgumentException(exceptionMessage);
 		}
-		String contactNumber = null;
-		return contactNumber;
+	}
+
+	/**
+	 * Detects the right object from entity (Patient, Location or User) and returns
+	 * its primary contact
+	 * 
+	 * @param entity
+	 * @return
+	 */
+	public String getPrimaryContactFromEntity(BaseEntity entity) {
+		String contact = null;
+		if (entity instanceof Patient) {
+			contact = ((Patient) entity).getPrimaryContact();
+		} else if (entity instanceof Location) {
+			contact = ((Location) entity).getPrimaryContact();
+		} else if (entity instanceof User) {
+			contact = ((User) entity).getPrimaryContact();
+		}
+		return contact;
+	}
+
+	/**
+	 * Search for patient, location or user from the encounter. The method first
+	 * fetches the observation which matches the variable, then gets the observation
+	 * value. If this value is a PatientID, then the contact is searched against
+	 * that patient. Otherwise, the contact is searched against in locations
+	 * 
+	 * @param encounter
+	 * @param variable
+	 * @return
+	 */
+	public BaseEntity searchEntityFromEncounter(Encounter encounter, String variable) {
+		for (Observation obs : encounter.getObservations()) {
+			if (ValidationUtil.variableMatchesWithConcept(variable, obs)) {
+				String value = obs.getValue().toString();
+				if (ValidationUtil.isValidPatientId(value)) {
+					return Context.getPatientByIdentifierOrGeneratedId(value, null, dbUtil);
+				} else if (ValidationUtil.isValidLocationId(value)) {
+					return Context.getLocationByName(value, dbUtil);
+				} else if (ValidationUtil.isValidUsername(value)) {
+					return Context.getUserByUsername(value, dbUtil);
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Searches for the first relationship found for the patient against given
+	 * relationship name
+	 * 
+	 * @param patient
+	 * @param relationshipName
+	 * @return
+	 */
+	public BaseEntity searchEntityFromRelationship(Patient patient, String relationshipName) {
+		Integer relationshipTypeId = Context.getRelationshipType(relationshipName);
+		List<Relationship> relationships = Context.getRelationshipsByPersonId(relationshipTypeId, patient.getPersonId(),
+				dbUtil);
+		Relationship relationship = relationships.get(0);
+		Integer relative = null;
+		if (patient.getPersonId().equals(relationship.getPersonA())) {
+			relative = relationship.getPersonB();
+		} else {
+			relative = relationship.getPersonA();
+		}
+		if (relative != null) {
+			Context.getPatientByIdentifierOrGeneratedId(null, relative, dbUtil);
+		}
+		return null;
+	}
+
+	/**
+	 * Searches for the first relationship found for the patient against given
+	 * relationship name
+	 * 
+	 * @param patient
+	 * @param relationshipName
+	 * @return
+	 */
+	public BaseEntity searchEntityFromPatient(Patient patient, String relationshipName) {
+		return null;
 	}
 }

@@ -18,7 +18,9 @@ import java.util.Date;
  * @author owais.hussain@ihsinformatics.com
  *
  */
-public class User {
+public class User extends BaseEntity {
+
+	private static final long serialVersionUID = 1881983410582799205L;
 	private Integer userId;
 	private Integer personId;
 	private String systemId;
@@ -26,6 +28,8 @@ public class User {
 	private String givenName;
 	private String lastName;
 	private String gender;
+	private String primaryContact;
+	private String secondaryContact;
 	private String healthCenter;
 	private String healthDistrict;
 	private String educationLevel;
@@ -175,6 +179,34 @@ public class User {
 	 */
 	public void setGender(String gender) {
 		this.gender = gender;
+	}
+
+	/**
+	 * @return the primaryContact
+	 */
+	public String getPrimaryContact() {
+		return primaryContact;
+	}
+
+	/**
+	 * @param primaryContact the primaryContact to set
+	 */
+	public void setPrimaryContact(String primaryContact) {
+		this.primaryContact = primaryContact;
+	}
+
+	/**
+	 * @return the secondaryContact
+	 */
+	public String getSecondaryContact() {
+		return secondaryContact;
+	}
+
+	/**
+	 * @param secondaryContact the secondaryContact to set
+	 */
+	public void setSecondaryContact(String secondaryContact) {
+		this.secondaryContact = secondaryContact;
 	}
 
 	/**

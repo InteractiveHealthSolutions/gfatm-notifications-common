@@ -34,7 +34,6 @@ import org.joda.time.DateTime;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.ihsinformatics.gfatmnotifications.common.model.Contact;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
@@ -71,7 +70,6 @@ public class Context {
 	private static RuleBook ruleBook;
 
 	private static List<User> users;
-	private static List<Contact> userContacts;
 	private static List<Location> locations;
 	private static List<String> userRoles;
 	private static List<Patient> patients;
@@ -149,9 +147,6 @@ public class Context {
 		}
 		if (users == null) {
 			loadUsers(Context.getDwDb());
-		}
-		if (userContacts == null) {
-			loadContacts(Context.getDwDb());
 		}
 		if (locations == null) {
 			loadLocations(Context.getDwDb());
@@ -475,30 +470,6 @@ public class Context {
 	}
 
 	/**
-	 * Fetch all contacts from DB and store locally
-	 */
-	public static void loadContacts(DatabaseUtil dbUtil) {
-		StringBuilder query = new StringBuilder();
-		query.append(
-				"select u.person_id as personId, la.location_id as locationId, l.name as locationName, pc.value as primaryContact, sc.value as secondaryContact, em.value as emailAddress from users as u ");
-		query.append(
-				"left outer join location_attribute as la on la.attribute_type_id = 16 and la.value_reference = u.system_id ");
-		query.append("left outer join location as l on l.location_id = la.location_id ");
-		query.append(
-				"left outer join person_attribute as em on em.person_id = u.person_id and em.person_attribute_type_id = 29 and em.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as pc on pc.person_id = u.person_id and pc.person_attribute_type_id = 8 and pc.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as sc on sc.person_id = u.person_id and sc.person_attribute_type_id = 12 and sc.voided = 0 ");
-		query.append(
-				"having (concat(ifnull(emailAddress, ''), ifnull(primaryContact, ''), ifnull(secondaryContact, ''))) <> ''");
-		String jsonString = queryToJson(query.toString(), dbUtil);
-		Type listType = new TypeToken<List<Contact>>() {
-		}.getType();
-		userContacts = builder.create().fromJson(jsonString, listType);
-	}
-
-	/**
 	 * Fetch all patients from DB and store locally
 	 */
 	public static void loadPatients(DatabaseUtil dbUtil) {
@@ -712,76 +683,6 @@ public class Context {
 		return observations;
 	}
 
-	public static Patient getPatientByPatientId(String identifier, DatabaseUtil dbUtil) {
-		StringBuilder query = new StringBuilder();
-		query.append(
-				"select  pt.patient_id as personId,pn.given_name as givenName,pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
-		query.append(
-				"bp.value as birthplace,ms.value as maritalStatus,pcontact.value as primaryContact,pco.value as primaryContactOwner , scontact.value as secondaryContact,sco.value as secondaryContactOwner,");
-		query.append(
-				"hd.value as healthDistrict, hc.value as healthCenter,ethn.value as ethnicity,edu.value as educationLevel, emp.value as employmentStatus, occu.value as occupation, lang.value as motherTongue,");
-		query.append(
-				"nic.value as nationalID, cnicO.value as nationalIDOwner,gn.value as guardianName,ts.value as treatmentSupporter,oin.value as otherIdentificationNumber,tg.value as transgender,");
-		query.append(
-				"pat.value as patientType,pt.creator as creator , pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark,");
-		query.append(
-				"pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
-		query.append(
-				"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
-		query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided =0 ");
-		query.append("inner join person_name as pn on pn.person_id = p.person_id  and pn.voided =0 ");
-		query.append(
-				"left outer join person_attribute as hd on hd.person_id = p.person_id and hd.person_attribute_type_id = 6 and hd.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as hc on hc.person_id = p.person_id and hc.person_attribute_type_id = 7 and hc.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as pcontact on pcontact.person_id = p.person_id and pcontact.person_attribute_type_id = 8 and pcontact.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as scontact on scontact.person_id = p.person_id and scontact.person_attribute_type_id = 12 and scontact.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as edu on edu.person_id = p.person_id and edu.person_attribute_type_id = 15 and edu.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as emp on emp.person_id = p.person_id and emp.person_attribute_type_id = 16 and emp.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as occu on occu.person_id = p.person_id and occu.person_attribute_type_id = 17 and occu.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as lang on lang.person_id = p.person_id and lang.person_attribute_type_id = 18 and lang.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as nic on nic.person_id = p.person_id and nic.person_attribute_type_id = 20 and nic.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as bp on bp.person_id = p.person_id and bp.person_attribute_type_id = 2 and bp.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as ms on ms.person_id = p.person_id and ms.person_attribute_type_id = 5 and ms.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as pco on pco.person_id = p.person_id and pco.person_attribute_type_id = 11 and pco.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as sco on sco.person_id = p.person_id and sco.person_attribute_type_id = 13 and sco.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as ethn on ethn.person_id = p.person_id and ethn.person_attribute_type_id = 14 and ethn.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as cnicO on cnicO.person_id = p.person_id and cnicO.person_attribute_type_id = 21 and cnicO.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as gn on gn.person_id = p.person_id and gn.person_attribute_type_id = 22 and gn.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as ts on ts.person_id = p.person_id and ts.person_attribute_type_id = 25 and ts.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as oin on oin.person_id = p.person_id and oin.person_attribute_type_id = 26 and oin.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as tg on tg.person_id = p.person_id and tg.person_attribute_type_id = 27 and tg.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
-		query.append(
-				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
-		query.append(
-				"left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
-		query.append(" where pi.identifier ='" + identifier + "'");
-		String jsonString = queryToJson(query.toString(), dbUtil);
-		Type listType = new TypeToken<List<Patient>>() {
-		}.getType();
-		List<Patient> patients = builder.create().fromJson(jsonString, listType);
-		return patients.size() > 0 ? patients.get(0) : null;
-	}
-
 	public static List<Relationship> getRelationshipsByPersonId(Integer relationshipTypeId, Integer personId,
 			DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
@@ -855,24 +756,16 @@ public class Context {
 		return null;
 	}
 
-	public static Contact getContactByLocationId(Integer locationId, DatabaseUtil dbUtil) {
-		Location location = getLocationById(locationId, dbUtil);
-		return getContactByLocationName(location.getName(), dbUtil);
-	}
-
-	public static Contact getContactByLocationName(String locationName, DatabaseUtil dbUtil) {
-		if (getUserContacts().isEmpty()) {
-			loadContacts(dbUtil);
-		}
-		for (Contact email : getUserContacts()) {
-			if (email.getLocationName().equals(locationName)) {
-				return email;
-			}
-		}
-		return null;
-	}
-
-	public static Patient getPatientByIdentifier(String patientIdentifier, DatabaseUtil dbUtil) {
+	/**
+	 * Returns Patient object by given patient identifier (first match). If the
+	 * patient does not exist in the set in memory, it is fetched from the database
+	 * 
+	 * @param patientIdentifier
+	 * @param dbUtil
+	 * @return
+	 */
+	public static Patient getPatientByIdentifierOrGeneratedId(String patientIdentifier, Integer generatedId,
+			DatabaseUtil dbUtil) {
 		if (getPatients().isEmpty()) {
 			loadPatients(dbUtil);
 		}
@@ -881,38 +774,95 @@ public class Context {
 				if (patient == null) {
 					continue;
 				}
-				if (patient.getPatientIdentifier().equalsIgnoreCase(patientIdentifier)) {
-					return patient;
+				if (patientIdentifier != null) {
+					if (patient.getPatientIdentifier().equalsIgnoreCase(patientIdentifier)) {
+						return patient;
+					}
+				} else {
+					if (patient.getPersonId().equals(generatedId)) {
+						return patient;
+					}
 				}
 			}
-			Patient patient = getPatientByPatientId(patientIdentifier, dbUtil);
-			getPatients().add(patient);
-			return patient;
+			StringBuilder query = new StringBuilder();
+			query.append(
+					"select  pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
+			query.append(
+					"bp.value as birthplace,ms.value as maritalStatus,pcontact.value as primaryContact,pco.value as primaryContactOwner , scontact.value as secondaryContact,sco.value as secondaryContactOwner,");
+			query.append(
+					"hd.value as healthDistrict, hc.value as healthCenter,ethn.value as ethnicity,edu.value as educationLevel, emp.value as employmentStatus, occu.value as occupation, lang.value as motherTongue,");
+			query.append(
+					"nic.value as nationalID, cnicO.value as nationalIDOwner,gn.value as guardianName,ts.value as treatmentSupporter,oin.value as otherIdentificationNumber,tg.value as transgender,");
+			query.append(
+					"pat.value as patientType,pt.creator as creator , pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark,");
+			query.append(
+					"pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
+			query.append(
+					"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
+			query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided =0 ");
+			query.append("inner join person_name as pn on pn.person_id = p.person_id  and pn.voided =0 ");
+			query.append(
+					"left outer join person_attribute as hd on hd.person_id = p.person_id and hd.person_attribute_type_id = 6 and hd.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as hc on hc.person_id = p.person_id and hc.person_attribute_type_id = 7 and hc.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as pcontact on pcontact.person_id = p.person_id and pcontact.person_attribute_type_id = 8 and pcontact.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as scontact on scontact.person_id = p.person_id and scontact.person_attribute_type_id = 12 and scontact.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as edu on edu.person_id = p.person_id and edu.person_attribute_type_id = 15 and edu.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as emp on emp.person_id = p.person_id and emp.person_attribute_type_id = 16 and emp.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as occu on occu.person_id = p.person_id and occu.person_attribute_type_id = 17 and occu.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as lang on lang.person_id = p.person_id and lang.person_attribute_type_id = 18 and lang.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as nic on nic.person_id = p.person_id and nic.person_attribute_type_id = 20 and nic.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as bp on bp.person_id = p.person_id and bp.person_attribute_type_id = 2 and bp.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as ms on ms.person_id = p.person_id and ms.person_attribute_type_id = 5 and ms.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as pco on pco.person_id = p.person_id and pco.person_attribute_type_id = 11 and pco.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as sco on sco.person_id = p.person_id and sco.person_attribute_type_id = 13 and sco.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as ethn on ethn.person_id = p.person_id and ethn.person_attribute_type_id = 14 and ethn.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as cnicO on cnicO.person_id = p.person_id and cnicO.person_attribute_type_id = 21 and cnicO.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as gn on gn.person_id = p.person_id and gn.person_attribute_type_id = 22 and gn.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as ts on ts.person_id = p.person_id and ts.person_attribute_type_id = 25 and ts.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as oin on oin.person_id = p.person_id and oin.person_attribute_type_id = 26 and oin.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as tg on tg.person_id = p.person_id and tg.person_attribute_type_id = 27 and tg.voided = 0 ");
+			query.append(
+					"left outer join person_attribute as pat on pat.person_id = p.person_id and pat.person_attribute_type_id = 28 and pat.voided = 0 ");
+			query.append(
+					"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
+			query.append(
+					"left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
+			if (patientIdentifier != null) {
+				query.append(" where pi.identifier ='" + patientIdentifier + "'");				
+			} else {
+				query.append(" where pt.patient_id ='" + generatedId + "'");
+			}
+			String jsonString = queryToJson(query.toString(), dbUtil);
+			Type listType = new TypeToken<List<Patient>>() {
+			}.getType();
+			List<Patient> patients = builder.create().fromJson(jsonString, listType);
+			if (!patients.isEmpty()) {
+				Patient patient = patients.get(0);
+				getPatients().add(patient);
+				return patient;
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
-	}
-
-	public static Contact getUserContactByLocationId(int locationId, DatabaseUtil dbUtil) {
-		if (getUserContacts().isEmpty()) {
-			loadContacts(dbUtil);
-		}
-		for (Contact contact : getUserContacts()) {
-			if (contact.getLocationId() == locationId) {
-				return contact;
-			}
-		}
-		return null;
-
-	}
-
-	public static Contact getUserContactByLocationName(String locationName, DatabaseUtil dbUtil) {
-		Location location = getLocationByName(locationName, dbUtil);
-		if (location == null) {
-			return null;
-		}
-		return getUserContactByLocationId(location.getLocationId(), dbUtil);
 	}
 
 	/**
@@ -959,12 +909,13 @@ public class Context {
 	}
 
 	/**
-	 * Returns generated ID of relationship type by name
+	 * Returns generated ID of relationship type by its name. The name is matched
+	 * from both left and right hand sides of relationship. E.g. Doctor - Patient
 	 * 
 	 * @param relationshipType
 	 * @return
 	 */
-	public static Integer getRelationshipTypeId(String relationshipType) {
+	public static Integer getRelationshipType(String relationshipType) {
 		for (Entry<Integer, String[]> entry : relationshipTypes.entrySet()) {
 			if (Objects.equals(relationshipType, entry.getValue()[0])) {
 				return entry.getKey();
@@ -988,20 +939,6 @@ public class Context {
 	 */
 	public static void setUsers(List<User> users) {
 		Context.users = users;
-	}
-
-	/**
-	 * @return the userContacts
-	 */
-	public static List<Contact> getUserContacts() {
-		return userContacts;
-	}
-
-	/**
-	 * @param userContacts the userContacts to set
-	 */
-	public static void setUserContacts(List<Contact> userContacts) {
-		Context.userContacts = userContacts;
 	}
 
 	/**

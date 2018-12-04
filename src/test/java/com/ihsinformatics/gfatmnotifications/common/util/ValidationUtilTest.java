@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.InvalidPropertiesFormatException;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
@@ -25,6 +26,32 @@ public class ValidationUtilTest {
 	@BeforeClass
 	public static void initialize() throws Exception {
 		Context.initialize(false, false);
+	}
+
+	@Test
+	public void testIsValidPatientId() {
+		String patientId = "ABCD3-1";
+		Assert.assertTrue(patientId + " should be validated!", ValidationUtil.isValidPatientId(patientId));
+	}
+
+	@Test
+	public void testInvalidPatientId() {
+		String patientId = "111111";
+		Assert.assertFalse(patientId + " should not be validated!", ValidationUtil.isValidPatientId(patientId));
+	}
+
+	@Test
+	public void testIsValidLocationId() {
+		String locationId = "IHK-KHI";
+		Assert.assertTrue(locationId + " should be validated!", ValidationUtil.isValidLocationId(locationId));
+		locationId = "Indus Hospital";
+		Assert.assertFalse(locationId + " should not be validated!", ValidationUtil.isValidLocationId(locationId));
+	}
+
+	@Test
+	public void testInvalidLocationId() {
+		String locationId = "Indus Hospital";
+		Assert.assertFalse(locationId + " should not be validated!", ValidationUtil.isValidLocationId(locationId));
 	}
 
 	@Test
@@ -116,6 +143,7 @@ public class ValidationUtilTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateStopConditions(com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.gfatmnotifications.common.model.Encounter, com.ihsinformatics.gfatmnotifications.common.model.Rule, com.ihsinformatics.util.DatabaseUtil)}.
 	 */
 	@Test
+	@Ignore
 	public void testValidateANDStopConditions() {
 		fail("Not yet implemented");
 	}
@@ -125,6 +153,7 @@ public class ValidationUtilTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateStopConditions(com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.gfatmnotifications.common.model.Encounter, com.ihsinformatics.gfatmnotifications.common.model.Rule, com.ihsinformatics.util.DatabaseUtil)}.
 	 */
 	@Test
+	@Ignore
 	public void testValidateORStopConditions() {
 		fail("Not yet implemented");
 	}
@@ -134,6 +163,7 @@ public class ValidationUtilTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateSingleStopCondition(java.lang.String, com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.util.DatabaseUtil)}.
 	 */
 	@Test
+	@Ignore
 	public void testValidateSingleStopCondition() {
 		fail("Not yet implemented");
 	}
@@ -143,6 +173,7 @@ public class ValidationUtilTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateConditions(com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.gfatmnotifications.common.model.Encounter, com.ihsinformatics.gfatmnotifications.common.model.Rule)}.
 	 */
 	@Test
+	@Ignore
 	public void testValidateConditions() {
 		fail("Not yet implemented");
 	}
@@ -152,6 +183,7 @@ public class ValidationUtilTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#getEntityPropertyValue(java.lang.Object, java.lang.String)}.
 	 */
 	@Test
+	@Ignore
 	public void testGetEntityPropertyValue() {
 		fail("Not yet implemented");
 	}
@@ -161,6 +193,7 @@ public class ValidationUtilTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#variableMatchesWithConcept(java.lang.String, com.ihsinformatics.gfatmnotifications.common.model.Observation)}.
 	 */
 	@Test
+	@Ignore
 	public void testVariableMatchesWithConcept() {
 		fail("Not yet implemented");
 	}

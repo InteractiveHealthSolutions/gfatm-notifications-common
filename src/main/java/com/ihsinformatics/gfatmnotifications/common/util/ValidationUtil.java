@@ -39,7 +39,9 @@ import com.ihsinformatics.util.RegexUtil;
  *
  */
 public class ValidationUtil {
-	public static final String PATIENT_ID_REGEX = "[0-9A-Za-z] {5}-[0-9]";
+	public static final String PATIENT_ID_REGEX = "[0-9A-Za-z]{5}\\-[0-9]";
+	public static final String LOCATION_ID_REGEX = "[A-Z\\-]+";
+	public static final String USERNAME_REGEX = "[a-z]+\\.[a-z]+";
 	private static final Logger log = Logger.getLogger(Class.class.getName());
 
 	/**
@@ -50,6 +52,26 @@ public class ValidationUtil {
 	 */
 	public static boolean isValidPatientId(String patientId) {
 		return patientId.matches(PATIENT_ID_REGEX);
+	}
+
+	/**
+	 * Checks whether given location ID matches with the ID scheme or not.
+	 * 
+	 * @param locationId
+	 * @return
+	 */
+	public static boolean isValidLocationId(String locationId) {
+		return locationId.matches(LOCATION_ID_REGEX);
+	}
+
+	/**
+	 * Checks whether given location ID matches with the ID scheme or not.
+	 * 
+	 * @param username
+	 * @return
+	 */
+	public static boolean isValidUsername(String username) {
+		return username.matches(USERNAME_REGEX);
 	}
 
 	/**
@@ -459,8 +481,8 @@ public class ValidationUtil {
 	 * At present, this function can only validate all OR's or all AND's, not their
 	 * combinations
 	 * 
-	 * @param patient   TODO
-	 * @param location  TODO
+	 * @param patient
+	 * @param location
 	 * @param encounter
 	 * @param rule
 	 * 

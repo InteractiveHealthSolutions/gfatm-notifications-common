@@ -18,8 +18,9 @@ import com.ihsinformatics.gfatmnotifications.common.Context;
  * @author owais.hussain@ihsinformatics.com
  *
  */
-public class Patient {
+public class Patient extends BaseEntity {
 
+	private static final long serialVersionUID = -2752992319218350228L;
 	private Integer personId;
 	private String patientIdentifier;
 	private String givenName;

@@ -12,17 +12,12 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 
 package com.ihsinformatics.gfatmnotifications.common.model;
 
-import java.io.Serializable;
-
 /**
  * @author owais.hussain@ihsinformatics.com
  *
  */
-public class Location implements Serializable {
+public class Location extends BaseEntity {
 
-	/**
-	 *
-	 */
 	private static final long serialVersionUID = -4675815525012531145L;
 	private Integer locationId;
 	private String name;
