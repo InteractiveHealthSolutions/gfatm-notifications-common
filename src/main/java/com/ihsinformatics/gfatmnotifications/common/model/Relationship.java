@@ -34,9 +34,9 @@ public class Relationship {
 	public Relationship(Integer personA, String aIsToB, Integer personB, String bIsToA, String uuid) {
 		super();
 		this.setPersonA(personA);
-		this.setaIsToB(aIsToB);
+		this.setAIsToB(aIsToB);
 		this.setPersonB(personB);
-		this.setbIsToA(bIsToA);
+		this.setBIsToA(bIsToA);
 		this.setUuid(uuid);
 	}
 
@@ -57,14 +57,14 @@ public class Relationship {
 	/**
 	 * @return the aIsToB
 	 */
-	public String getaIsToB() {
+	public String getAIsToB() {
 		return aIsToB;
 	}
 
 	/**
 	 * @param aIsToB the aIsToB to set
 	 */
-	public void setaIsToB(String aIsToB) {
+	public void setAIsToB(String aIsToB) {
 		this.aIsToB = aIsToB;
 	}
 
@@ -85,14 +85,14 @@ public class Relationship {
 	/**
 	 * @return the bIsToA
 	 */
-	public String getbIsToA() {
+	public String getBIsToA() {
 		return bIsToA;
 	}
 
 	/**
 	 * @param bIsToA the bIsToA to set
 	 */
-	public void setbIsToA(String bIsToA) {
+	public void setBIsToA(String bIsToA) {
 		this.bIsToA = bIsToA;
 	}
 

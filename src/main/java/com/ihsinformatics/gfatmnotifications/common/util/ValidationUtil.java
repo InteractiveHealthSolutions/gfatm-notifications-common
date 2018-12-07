@@ -541,12 +541,9 @@ public class ValidationUtil {
 			Encounter encounter, List<Observation> observations) {
 		boolean result = false;
 		try {
-
 			JSONObject jsonObject = JsonUtil.getJSONObject(condition.trim());
-			if (!(jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate")
-			/* && jsonObject.has("value") */)) {
-				log.info(jsonObject.toString());
-				log.severe("Condition must contain all four required keys: entity, validate and value");
+			if (!(jsonObject.has("entity") && jsonObject.has("property") && jsonObject.has("validate"))) {
+				log.severe("Condition must contain all required keys: entity, property, validate and value");
 				return false;
 			}
 			String entity = jsonObject.getString("entity");
@@ -555,11 +552,9 @@ public class ValidationUtil {
 			String expectedValue = null;
 			if (!(validationType.equalsIgnoreCase("NOTNULL") || validationType.equalsIgnoreCase("PRESENT")
 					|| validationType.equalsIgnoreCase("EXISTS"))) {
-
 				expectedValue = jsonObject.getString("value");
 			}
 			String actualValue = null;
-
 			// In case of Encounter, search through observations
 			if (entity.equalsIgnoreCase("Encounter")) {
 				// Search for the observation's concept name matching the variable name

@@ -11,8 +11,9 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 */
 package com.ihsinformatics.gfatmnotifications.common.service;
 
-import java.util.IllegalFormatException;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
@@ -47,8 +48,7 @@ public class SearchService {
 	 * @param rule
 	 * @return
 	 */
-	public String searchContactFromRule(Patient patient, Encounter encounter, Rule rule) throws IllegalFormatException {
-		// TODO: Complete and test this
+	public String searchContactFromRule(Patient patient, Encounter encounter, Rule rule) {
 		String exceptionMessage = rule.getSendTo()
 				+ " is not in correct search format. Please specify it like: Search Encounter.referral_site, Search Relationship.index, Search Relationship.doctor, etc.";
 		if (rule.getSendTo().toLowerCase().startsWith("search")) {
@@ -131,18 +131,20 @@ public class SearchService {
 	 * @return
 	 */
 	public BaseEntity searchEntityFromRelationship(Patient patient, String relationshipName) {
-		Integer relationshipTypeId = Context.getRelationshipType(relationshipName);
-		List<Relationship> relationships = Context.getRelationshipsByPersonId(relationshipTypeId, patient.getPersonId(),
-				dbUtil);
-		Relationship relationship = relationships.get(0);
-		Integer relative = null;
-		if (patient.getPersonId().equals(relationship.getPersonA())) {
-			relative = relationship.getPersonB();
-		} else {
-			relative = relationship.getPersonA();
-		}
-		if (relative != null) {
-			Context.getPatientByIdentifierOrGeneratedId(null, relative, dbUtil);
+		List<Relationship> relationships = Context.getRelationshipsByPersonId(patient.getPersonId(), dbUtil);
+		for (Relationship relationship : relationships) {
+			Integer relative = null;
+			if (relationship.getPersonA().equals(patient.getPersonId())) {
+				relative = relationship.getPersonB();
+			} else {
+				relative = relationship.getPersonA();
+			}
+			if (relative != null) {
+				if (relationship.getAIsToB().equalsIgnoreCase(relationshipName)
+						|| relationship.getBIsToA().equalsIgnoreCase(relationshipName)) {
+					return Context.getPatientByIdentifierOrGeneratedId(null, relative, dbUtil);
+				}
+			}
 		}
 		return null;
 	}
@@ -152,10 +154,23 @@ public class SearchService {
 	 * relationship name
 	 * 
 	 * @param patient
-	 * @param relationshipName
+	 * @param attributeName
 	 * @return
 	 */
-	public BaseEntity searchEntityFromPatient(Patient patient, String relationshipName) {
+	public BaseEntity searchEntityFromPatient(Patient patient, String attributeName) {
+		Map<String, String> attributes = Context.getPatientAttributesByGeneratedId(patient.getPersonId(), dbUtil);
+		for (Entry<String, String> entry : attributes.entrySet()) {
+			if (entry.getKey().equals(attributeName)) {
+				String value = entry.getValue();
+				if (ValidationUtil.isValidUsername(value)) {
+					return Context.getUserByUsername(value, dbUtil);
+				} else if (ValidationUtil.isValidLocationId(value)) {
+					return Context.getLocationByName(value, dbUtil);
+				} else {
+					return Context.getPatientByIdentifierOrGeneratedId(value, null, dbUtil);
+				}
+			}
+		}
 		return null;
 	}
 }

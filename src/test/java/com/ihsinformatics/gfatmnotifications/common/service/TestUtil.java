@@ -13,10 +13,10 @@ package com.ihsinformatics.gfatmnotifications.common.service;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.io.BufferedReader;
 import java.io.FileReader;
 import java.net.URL;
 
-import org.h2.tools.RunScript;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,15 +38,14 @@ public class TestUtil {
 	@BeforeClass
 	public static void createTestDb() {
 		try {
-			URL script = ClassLoaderUtil.getResource(TEST_SCRIPT_FILE, TestUtil.class);
+			URL file = ClassLoaderUtil.getResource(TEST_SCRIPT_FILE, TestUtil.class);
 			Context.readProperties(PROP_FILE);
 			// Initialize connection only
 			Context.initialize(false, false, false);
-			String file = script.getFile();
 			dbUtil = Context.getOpenmrsDb();
-			RunScript.execute(dbUtil.getConnection(), new FileReader(file));
-			// Complete initialization
-			Context.initialize(true, true, true);
+			ScriptRunner runner = new ScriptRunner(dbUtil.getConnection(), false, true);
+			runner.runScript(new BufferedReader(new FileReader(file.getFile())));
+			Context.initialize(true, true, false);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("Database initialize script error " + e.getMessage());

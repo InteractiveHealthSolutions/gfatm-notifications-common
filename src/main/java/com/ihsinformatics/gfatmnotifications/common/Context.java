@@ -76,48 +76,7 @@ public class Context {
 	private static Map<Integer, String> encounterTypes;
 	private static Map<Integer, String[]> relationshipTypes;
 
-	static {
-		try {
-			log.info("Reading properties...");
-			readProperties();
-			if (getProps() == null) {
-				log.severe("Unable to read properties file.");
-				System.exit(-1);
-			}
-			log.info("Loading data...");
-			createOpenmrsDbConnection();
-			createWarehouseDbConnection();
-			initialize(false, false);
-			log.info("Initialization complete.");
-		} catch (IOException e) {
-			log.severe(e.getMessage());
-			System.exit(-1);
-		}
-	}
-
 	private Context() {
-	}
-
-	private static void createOpenmrsDbConnection() {
-
-		String url = getProps().getProperty("openmrs.connection.url", "jdbc:mysql://localhost:3306");
-		String dbName = getProps().getProperty("openmrs.connection.database", "gfatm_dw");
-		String driverName = getProps().getProperty("openmrs.connection.driver_class", "com.mysql.jdbc.Driver");
-		String userName = getProps().getProperty("openmrs.connection.username", "root");
-		String password = getProps().getProperty("openmrs.connection.password");
-		DatabaseUtil openmrsDb = new DatabaseUtil(url, dbName, driverName, userName, password);
-		setOpenmrsDb(openmrsDb);
-	}
-
-	private static void createWarehouseDbConnection() {
-
-		String url = getProps().getProperty("dwh.connection.url", "jdbc:mysql://localhost:3306");
-		String dbName = getProps().getProperty("dwh.connection.database", "gfatm_dw");
-		String driverName = getProps().getProperty("dwh.connection.driver_class", "com.mysql.jdbc.Driver");
-		String userName = getProps().getProperty("dwh.connection.username", "root");
-		String password = getProps().getProperty("dwh.connection.password");
-		DatabaseUtil warehouseDb = new DatabaseUtil(url, dbName, driverName, userName, password);
-		setDwDb(warehouseDb);
 	}
 
 	/**
@@ -126,7 +85,7 @@ public class Context {
 	 * @throws IOException
 	 */
 	public static void initialize() throws IOException {
-		initialize(true, true);
+		initialize(true, true, true);
 	}
 
 	/**
@@ -137,28 +96,69 @@ public class Context {
 	 * @param initRuleBook
 	 * @throws IOException
 	 */
-	public static void initialize(boolean initPatientData, boolean initRuleBook) throws IOException {
+	public static void initialize(boolean initMetadata, boolean initPatientData, boolean initRuleBook)
+			throws IOException {
+		if (props == null) {
+			log.info("Reading properties...");
+			readProperties(PROP_FILE_NAME);
+		}
+		if (getProps() == null) {
+			log.severe("Unable to read properties file.");
+			System.exit(-1);
+		}
+		log.info("Loading data...");
+		createOpenmrsDbConnection();
+		createWarehouseDbConnection();
 		DateTime start = new DateTime();
-		if (encounterTypes == null) {
-			loadEncounterTypes(Context.getDwDb());
-		}
-		if (relationshipTypes == null) {
-			loadRelationshipTypes(Context.getDwDb());
-		}
-		if (users == null) {
-			loadUsers(Context.getDwDb());
-		}
-		if (locations == null) {
-			loadLocations(Context.getDwDb());
+		if (initMetadata) {
+			if (encounterTypes == null) {
+				loadEncounterTypes(Context.getDwDb());
+			}
+			if (relationshipTypes == null) {
+				loadRelationshipTypes(Context.getDwDb());
+			}
+			if (users == null) {
+				loadUsers(Context.getDwDb());
+			}
+			if (locations == null) {
+				loadLocations(Context.getDwDb());
+			}
 		}
 		if (initPatientData && patients == null) {
 			loadPatients(Context.getOpenmrsDb());
 		}
 		if (initRuleBook && ruleBook == null) {
 			loadRuleBook();
-			System.out.println("It took me: " + new DateTime().minus(start.getMillis()).getMillis()
+			log.info("It took me: " + new DateTime().minus(start.getMillis()).getMillis()
 					+ " milliseconds to load data and rules.");
 		}
+		log.info("Initialization complete.");
+	}
+
+	/**
+	 * Reads OpenMRS connection from properties file
+	 */
+	private static void createOpenmrsDbConnection() {
+		String url = getProps().getProperty("openmrs.connection.url", "jdbc:mysql://localhost:3306");
+		String dbName = getProps().getProperty("openmrs.connection.database", "gfatm_dw");
+		String driverName = getProps().getProperty("openmrs.connection.driver_class", "com.mysql.jdbc.Driver");
+		String userName = getProps().getProperty("openmrs.connection.username", "root");
+		String password = getProps().getProperty("openmrs.connection.password");
+		DatabaseUtil openmrsDb = new DatabaseUtil(url, dbName, driverName, userName, password);
+		setOpenmrsDb(openmrsDb);
+	}
+
+	/**
+	 * Reads Data warehouse connection from properties file
+	 */
+	private static void createWarehouseDbConnection() {
+		String url = getProps().getProperty("dwh.connection.url", "jdbc:mysql://localhost:3306");
+		String dbName = getProps().getProperty("dwh.connection.database", "gfatm_dw");
+		String driverName = getProps().getProperty("dwh.connection.driver_class", "com.mysql.jdbc.Driver");
+		String userName = getProps().getProperty("dwh.connection.username", "root");
+		String password = getProps().getProperty("dwh.connection.password");
+		DatabaseUtil warehouseDb = new DatabaseUtil(url, dbName, driverName, userName, password);
+		setDwDb(warehouseDb);
 	}
 
 	/**
@@ -166,8 +166,8 @@ public class Context {
 	 * 
 	 * @throws IOException
 	 */
-	public static void readProperties() throws IOException {
-		InputStream inputStream = ClassLoaderUtil.getResourceAsStream(PROP_FILE_NAME, Context.class);
+	public static void readProperties(String fileName) throws IOException {
+		InputStream inputStream = ClassLoaderUtil.getResourceAsStream(fileName, Context.class);
 		if (inputStream != null) {
 			props = new Properties();
 			props.load(inputStream);
@@ -299,7 +299,6 @@ public class Context {
 		builder = new GsonBuilder().registerTypeAdapter(Date.class, new DateDeserializer())
 				.registerTypeAdapter(Date.class, new DateSerializer()).setPrettyPrinting().serializeNulls();
 		try {
-
 			list = queryRunner.query(dbUtil.getConnection(), query, new MapListHandler());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -308,6 +307,12 @@ public class Context {
 		return json;
 	}
 
+	/**
+	 * Converts an object to string, or empty string if obj is null
+	 * 
+	 * @param obj
+	 * @return
+	 */
 	public static String convertToString(Object obj) {
 		return obj == null ? null : obj.toString();
 	}
@@ -537,7 +542,7 @@ public class Context {
 		query.append("where pt.voided = 0 ");
 		query.append(
 				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and encounter_type in (4, 7, 29, 67, 104) and datediff(current_date(), encounter_datetime) < 100) ");
-		query.append("and ifnull(cons.value_coded, 1065) <> 1066 ");
+		query.append("and ifnull(cons.value_coded, 1065) = 1065 ");
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
@@ -632,6 +637,14 @@ public class Context {
 		return encounters;
 	}
 
+	/**
+	 * Returns latest Encounter by given patient identifier and encounter type ID
+	 * 
+	 * @param patientIdentifier
+	 * @param encounterTypeId
+	 * @param dbUtil
+	 * @return
+	 */
 	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId,
 			DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
@@ -654,7 +667,7 @@ public class Context {
 		query.append("where e.patient_id = (select patient_id from patient_identifier where identifier = '"
 				+ patientIdentifier + "')");
 		query.append(
-				"and e.encounter_type = " + encounterTypeId + " and e.voided = 0  order by e.encounter_datetime desc");
+				"and e.encounter_type = " + encounterTypeId + " and e.voided = 0 order by e.encounter_datetime desc");
 
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type type = new TypeToken<List<Encounter>>() {
@@ -663,6 +676,13 @@ public class Context {
 		return encounter.get(0);
 	}
 
+	/**
+	 * Returns set of observations by encounter
+	 * 
+	 * @param encounter
+	 * @param dbUtil
+	 * @return
+	 */
 	public static List<Observation> getEncounterObservations(Encounter encounter, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
@@ -683,17 +703,23 @@ public class Context {
 		return observations;
 	}
 
-	public static List<Relationship> getRelationshipsByPersonId(Integer relationshipTypeId, Integer personId,
-			DatabaseUtil dbUtil) {
+	public static List<Relationship> getRelationshipsByPersonId(Integer personId, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
-		query.append("select r.person_a, t.a_is_to_b, r.person_b, t.b_is_to_a from relationship as r ");
+		query.append("select r.person_a, t.a_is_to_b, r.person_b, t.b_is_to_a, r.uuid from relationship as r ");
 		query.append("inner join relationship_type as t on t.relationship_type_id = r.relationship and t.retired = 0 ");
 		query.append("where r.voided = 0 ");
 		query.append("and (r.person_a = " + personId + " or r.person_b = " + personId + ")");
-		String jsonString = queryToJson(query.toString(), dbUtil);
-		Type listType = new TypeToken<List<Relationship>>() {
-		}.getType();
-		List<Relationship> relationships = builder.create().fromJson(jsonString, listType);
+		Object[][] data = dbUtil.getTableData(query.toString());
+		List<Relationship> relationships = new ArrayList<>();
+		for (Object[] row : data) {
+			Integer personA = Integer.parseInt(row[0].toString());
+			String aIsToB = row[1].toString();
+			Integer personB = Integer.parseInt(row[2].toString());
+			String bIsToA = row[3].toString();
+			String uuid = row[4].toString();
+			Relationship relationship = new Relationship(personA, aIsToB, personB, bIsToA, uuid);
+			relationships.add(relationship);
+		}
 		return relationships;
 	}
 
@@ -766,7 +792,7 @@ public class Context {
 	 */
 	public static Patient getPatientByIdentifierOrGeneratedId(String patientIdentifier, Integer generatedId,
 			DatabaseUtil dbUtil) {
-		if (getPatients().isEmpty()) {
+		if (patients == null || getPatients().isEmpty()) {
 			loadPatients(dbUtil);
 		}
 		try {
@@ -846,7 +872,7 @@ public class Context {
 			query.append(
 					"left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
 			if (patientIdentifier != null) {
-				query.append(" where pi.identifier ='" + patientIdentifier + "'");				
+				query.append(" where pi.identifier ='" + patientIdentifier + "'");
 			} else {
 				query.append(" where pt.patient_id ='" + generatedId + "'");
 			}
@@ -906,25 +932,6 @@ public class Context {
 	 */
 	public static void setRelationshipTypes(Map<Integer, String[]> relationshipTypes) {
 		Context.relationshipTypes = relationshipTypes;
-	}
-
-	/**
-	 * Returns generated ID of relationship type by its name. The name is matched
-	 * from both left and right hand sides of relationship. E.g. Doctor - Patient
-	 * 
-	 * @param relationshipType
-	 * @return
-	 */
-	public static Integer getRelationshipType(String relationshipType) {
-		for (Entry<Integer, String[]> entry : relationshipTypes.entrySet()) {
-			if (Objects.equals(relationshipType, entry.getValue()[0])) {
-				return entry.getKey();
-			}
-			if (Objects.equals(relationshipType, entry.getValue()[1])) {
-				return entry.getKey();
-			}
-		}
-		return null;
 	}
 
 	/**
@@ -1036,5 +1043,28 @@ public class Context {
 			}
 		}
 		return referenceDate;
+	}
+
+	public static Map<String, String> getPatientAttributesByGeneratedId(Integer personId, DatabaseUtil dbUtil) {
+		Map<String, String> map = null;
+		StringBuilder query = new StringBuilder(
+				"select pt.name, ifnull(l.name, ifnull(cn.name, pa.value)) as value from person_attribute as pa ");
+		query.append(
+				"inner join person_attribute_type as pt on pt.person_attribute_type_id = pa.person_attribute_type_id and pt.retired = 0 ");
+		query.append("left outer join location as l on l.location_id = pa.value and l.retired = 0 ");
+		query.append(
+				"left outer join concept_name as cn on cn.concept_id = pa.value and cn.voided = 0 and cn.locale = 'en' and locale_preferred = 1 ");
+		query.append("where pa.voided = 0 ");
+		query.append("and pa.person_id = " + personId);
+		Object[][] data = dbUtil.getTableData(query.toString());
+		if (data != null) {
+			map = new HashMap<>();
+			for (Object[] objects : data) {
+				String key = objects[0].toString();
+				String value = objects[1].toString();
+				map.put(key, value);
+			}
+		}
+		return map;
 	}
 }

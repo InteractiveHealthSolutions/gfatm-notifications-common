@@ -12,7 +12,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.service.TestUtil;
 import com.ihsinformatics.util.RegexUtil;
 
 import junit.framework.Assert;
@@ -21,11 +21,10 @@ import junit.framework.Assert;
  * @author owais.hussain@ihsinformatics.com
  *
  */
-public class ValidationUtilTest {
+public class ValidationUtilTest extends TestUtil {
 
 	@BeforeClass
 	public static void initialize() throws Exception {
-		Context.initialize(false, false);
 	}
 
 	@Test
