@@ -23,20 +23,19 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
+import com.ihsinformatics.gfatmnotifications.common.service.TestUtil;
 
 /**
  * @author owais.hussain@ihsinformatics.com
  *
  */
-public class FormattedMessageParserTest {
+public class FormattedMessageParserTest extends TestUtil {
 
 	private FormattedMessageParser parser;
 	private String message = "Assalamu alaekum janab {patient.getFullName}. "
@@ -49,11 +48,6 @@ public class FormattedMessageParserTest {
 	private User testUser;
 	private Encounter testEncounter;
 	private Location testLocation;
-
-	@BeforeClass
-	public static void initialize() throws Exception {
-		Context.initialize();
-	}
 
 	/**
 	 * @throws java.lang.Exception
@@ -133,7 +127,7 @@ public class FormattedMessageParserTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
 	 */
 	@Test
-	public void testGetPropertyValue_Field() {
+	public void testGetPropertyValueField() {
 		try {
 			assertSame(parser.getPropertyValue(testPatient, "givenName"), testPatient.getGivenName());
 			assertSame(parser.getPropertyValue(testPatient, "personId"), testPatient.getPersonId());
@@ -148,7 +142,7 @@ public class FormattedMessageParserTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
 	 */
 	@Test(expected = NoSuchMethodException.class)
-	public void shouldThrowExceptionOnGetPropertyValue_Field()
+	public void shouldThrowExceptionOnGetPropertyValueField()
 			throws SecurityException, IllegalArgumentException, ReflectiveOperationException {
 		parser.getPropertyValue(testPatient, "nonExistingField");
 	}
@@ -158,7 +152,7 @@ public class FormattedMessageParserTest {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.FormattedMessageParser#getPropertyValue(java.lang.Object, java.lang.String)}.
 	 */
 	@Test
-	public void testGetPropertyValue_Method() {
+	public void testGetPropertyValueMethod() {
 		try {
 			String actual = parser.getPropertyValue(testPatient, "getFullName").toString();
 			String expected = testPatient.getFullName();

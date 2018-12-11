@@ -44,11 +44,12 @@ public class RuleBook {
 	private final Integer plusMinusUnitColumn = Context.getIntegerProperty("rule.unit.column");
 	private final Integer messageCodeColumn = Context.getIntegerProperty("rule.message_code.column");
 	private final Integer stopConditionColumn = Context.getIntegerProperty("rule.stop_condition.column");
-	private final Integer fetchDurationColumn= Context.getIntegerProperty("rule.fetch_duration.column");
-	private final Integer databaseConnectionNameColumn = Context.getIntegerProperty("rule.database_connection_name.column");
+	private final Integer fetchDurationColumn = Context.getIntegerProperty("rule.fetch_duration.column");
+	private final Integer databaseConnectionNameColumn = Context
+			.getIntegerProperty("rule.database_connection_name.column");
 	private final Integer recordOnlyColumn = Context.getIntegerProperty("rule.record_only.column");
 	private List<Rule> rules;
-	private Map<String,String> messages;
+	private Map<String, String> messages;
 	private Set<String> blacklistedPatients;
 	private Set<String> blacklistedLocations;
 	private Set<String> blacklistedUsers;
@@ -66,7 +67,7 @@ public class RuleBook {
 				continue;
 			}
 			Rule rule = new Rule();
-			rule.setType(row.getCell(typeColumn).getStringCellValue());
+			rule.setType(NotificationType.valueOf(row.getCell(typeColumn).getStringCellValue()));
 			rule.setEncounterType(row.getCell(encounterColumn).getStringCellValue());
 			rule.setConditions(row.getCell(conditionsColumn).getStringCellValue());
 			rule.setSendTo(row.getCell(sendToColumn).getStringCellValue());
@@ -83,7 +84,7 @@ public class RuleBook {
 			}
 			rules.add(rule);
 		}
-		
+
 		Sheet messageSheet = workbook.getSheet("Messages");
 		setMessages(new HashMap<String, String>());
 		for (Row row : messageSheet) {
@@ -92,28 +93,26 @@ public class RuleBook {
 				continue;
 			}
 			getMessages().put(row.getCell(0).getStringCellValue(), row.getCell(1).getStringCellValue());
-
 		}
-		
+
 		Sheet blacklistSheet = workbook.getSheet("Blacklist");
 		setBlacklistedPatient(new HashSet<String>());
 		setBlacklistedLocations(new HashSet<String>());
 		setBlacklistedUsers(new HashSet<String>());
-		
+
 		for (Row row : blacklistSheet) {
 			// Skip the header row
 			if (row.getRowNum() == 0) {
 				continue;
 			}
 			try {
-			getBlacklistedPatient().add(row.getCell(0).getStringCellValue());
-			getBlacklistedLocations().add(row.getCell(1).getStringCellValue());
-			getBlacklistedUsers().add(row.getCell(2).getStringCellValue());
-			}catch(Exception e) {
+				getBlacklistedPatient().add(row.getCell(0).getStringCellValue());
+				getBlacklistedLocations().add(row.getCell(1).getStringCellValue());
+				getBlacklistedUsers().add(row.getCell(2).getStringCellValue());
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		
 		workbook.close();
 	}
 
@@ -132,9 +131,9 @@ public class RuleBook {
 	}
 
 	public List<Rule> getCallRules() {
-		List<Rule> callRules = new ArrayList<Rule>();
+		List<Rule> callRules = new ArrayList<>();
 		for (Rule rule : rules) {
-			if (rule.getType().equalsIgnoreCase(NotificationType.CALL.toString())) {
+			if (rule.getType() == NotificationType.CALL) {
 				callRules.add(rule);
 			}
 		}
@@ -142,9 +141,9 @@ public class RuleBook {
 	}
 
 	public List<Rule> getEmailRules() {
-		List<Rule> emailRules = new ArrayList<Rule>();
+		List<Rule> emailRules = new ArrayList<>();
 		for (Rule rule : rules) {
-			if (rule.getType().equalsIgnoreCase(NotificationType.EMAIL.toString())) {
+			if (rule.getType() == NotificationType.EMAIL) {
 				emailRules.add(rule);
 			}
 		}
@@ -152,9 +151,9 @@ public class RuleBook {
 	}
 
 	public List<Rule> getSmsRules() {
-		List<Rule> smsRules = new ArrayList<Rule>();
+		List<Rule> smsRules = new ArrayList<>();
 		for (Rule rule : rules) {
-			if (rule.getType().equalsIgnoreCase(NotificationType.SMS.toString())) {
+			if (rule.getType() == NotificationType.SMS) {
 				smsRules.add(rule);
 			}
 		}

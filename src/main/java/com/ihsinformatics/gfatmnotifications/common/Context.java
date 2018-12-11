@@ -351,10 +351,10 @@ public class Context {
 	 * Fetch all encounter types from DB and store locally
 	 */
 	public static void loadEncounterTypes(DatabaseUtil dbUtil) {
-		encounterTypes = new HashMap<Integer, String>();
+		encounterTypes = new HashMap<>();
 		try {
 			StringBuilder query = new StringBuilder(
-					"SELECT encounter_type_id as encounterTypeId, name FROM encounter_type where retired = 0");
+					"SELECT encounter_type_id as encounterTypeId, name FROM encounter_type");
 			Object[][] data = dbUtil.getTableData(query.toString());
 			if (data == null) {
 				return;
@@ -374,7 +374,7 @@ public class Context {
 		relationshipTypes = new HashMap<Integer, String[]>();
 		try {
 			StringBuilder query = new StringBuilder(
-					"SELECT relationship_type_id as relationshipTypeId, a_is_to_b, b_is_to_a FROM relationship_type where retired = 0");
+					"SELECT relationship_type_id as relationshipTypeId, a_is_to_b, b_is_to_a FROM relationship_type");
 			Object[][] data = dbUtil.getTableData(query.toString());
 			if (data == null) {
 				return;
@@ -638,7 +638,8 @@ public class Context {
 	}
 
 	/**
-	 * Returns latest Encounter by given patient identifier and encounter type ID
+	 * Overloaded method. Check getEncounterByPatientIdentifier(String, int,
+	 * boolean, DatabaseUtil)
 	 * 
 	 * @param patientIdentifier
 	 * @param encounterTypeId
@@ -647,6 +648,20 @@ public class Context {
 	 */
 	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId,
 			DatabaseUtil dbUtil) {
+		return getEncounterByPatientIdentifier(patientIdentifier, encounterTypeId, false, dbUtil);
+	}
+
+	/**
+	 * Returns latest Encounter by given patient identifier and encounter type ID
+	 * 
+	 * @param patientIdentifier
+	 * @param encounterTypeId
+	 * @param attachObs
+	 * @param dbUtil
+	 * @return
+	 */
+	public static Encounter getEncounterByPatientIdentifier(String patientIdentifier, int encounterTypeId,
+			boolean attachObs, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
@@ -668,12 +683,18 @@ public class Context {
 				+ patientIdentifier + "')");
 		query.append(
 				"and e.encounter_type = " + encounterTypeId + " and e.voided = 0 order by e.encounter_datetime desc");
-
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type type = new TypeToken<List<Encounter>>() {
 		}.getType();
 		List<Encounter> encounter = builder.create().fromJson(jsonString, type);
-		return encounter.get(0);
+		if (encounter.isEmpty()) {
+			return null;
+		}
+		Encounter encounterToReturn = encounter.get(0);
+		if (attachObs) {
+			encounterToReturn.setObservations(getEncounterObservations(encounterToReturn, dbUtil));
+		}
+		return encounterToReturn;
 	}
 
 	/**
@@ -689,11 +710,11 @@ public class Context {
 				"select o.obs_id as obsId, e.patient_id as patientId, o.concept_id as conceptId, cn.name as conceptName, c.name as conceptShortName, o.encounter_id as encounterId, o.order_id as orderId, o.location_id as locationId, o.value_numeric as valueNumeric, o.value_coded as valueCoded, vn.name as valueCodedName, o.value_datetime as valueDatetime, o.value_text as valueText, o.uuid from obs as o ");
 		query.append("inner join encounter as e on e.encounter_id = o.encounter_id ");
 		query.append(
-				"inner join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT'  ");
+				"inner join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT' ");
 		query.append(
 				"inner join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
 		query.append(
-				"inner join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
+				"left outer join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());
 
 		String jsonString = queryToJson(query.toString(), dbUtil);
@@ -706,7 +727,7 @@ public class Context {
 	public static List<Relationship> getRelationshipsByPersonId(Integer personId, DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append("select r.person_a, t.a_is_to_b, r.person_b, t.b_is_to_a, r.uuid from relationship as r ");
-		query.append("inner join relationship_type as t on t.relationship_type_id = r.relationship and t.retired = 0 ");
+		query.append("inner join relationship_type as t on t.relationship_type_id = r.relationship ");
 		query.append("where r.voided = 0 ");
 		query.append("and (r.person_a = " + personId + " or r.person_b = " + personId + ")");
 		Object[][] data = dbUtil.getTableData(query.toString());
@@ -812,21 +833,21 @@ public class Context {
 			}
 			StringBuilder query = new StringBuilder();
 			query.append(
-					"select  pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName,p.gender as gender,p.birthdate as birthdate,p.birthdate_estimated as estimated, ");
+					"select pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName, p.gender as gender, p.birthdate as birthdate, p.birthdate_estimated as estimated, ");
 			query.append(
-					"bp.value as birthplace,ms.value as maritalStatus,pcontact.value as primaryContact,pco.value as primaryContactOwner , scontact.value as secondaryContact,sco.value as secondaryContactOwner,");
+					"bp.value as birthplace, ms.value as maritalStatus, pcontact.value as primaryContact, pco.value as primaryContactOwner, scontact.value as secondaryContact, sco.value as secondaryContactOwner, ");
 			query.append(
-					"hd.value as healthDistrict, hc.value as healthCenter,ethn.value as ethnicity,edu.value as educationLevel, emp.value as employmentStatus, occu.value as occupation, lang.value as motherTongue,");
+					"hd.value as healthDistrict, hc.value as healthCenter, ethn.value as ethnicity, edu.value as educationLevel, emp.value as employmentStatus, occu.value as occupation, lang.value as motherTongue, ");
 			query.append(
-					"nic.value as nationalID, cnicO.value as nationalIDOwner,gn.value as guardianName,ts.value as treatmentSupporter,oin.value as otherIdentificationNumber,tg.value as transgender,");
+					"nic.value as nationalID, cnicO.value as nationalIDOwner, gn.value as guardianName, ts.value as treatmentSupporter, oin.value as otherIdentificationNumber, tg.value as transgender, ");
 			query.append(
-					"pat.value as patientType,pt.creator as creator , pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark,");
+					"pat.value as patientType, pt.creator as creator, pt.date_created as dateCreated, pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, ");
 			query.append(
-					"pi.identifier as patientIdentifier,pi.uuid,  cons.value_coded as consent, p.dead as dead from patient pt ");
+					"pi.identifier as patientIdentifier, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
 			query.append(
 					"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
-			query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided =0 ");
-			query.append("inner join person_name as pn on pn.person_id = p.person_id  and pn.voided =0 ");
+			query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided = 0 ");
+			query.append("inner join person_name as pn on pn.person_id = p.person_id  and pn.voided = 0 ");
 			query.append(
 					"left outer join person_attribute as hd on hd.person_id = p.person_id and hd.person_attribute_type_id = 6 and hd.voided = 0 ");
 			query.append(
@@ -870,7 +891,7 @@ public class Context {
 			query.append(
 					"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
 			query.append(
-					"left join obs AS cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
+					"left join obs as cons on pa.person_id=cons.person_id and cons.concept_id=164700 and cons.voided = 0 ");
 			if (patientIdentifier != null) {
 				query.append(" where pi.identifier ='" + patientIdentifier + "'");
 			} else {
@@ -993,7 +1014,12 @@ public class Context {
 	public static Date calculateScheduleDate(DateTime referenceDate, Double plusMinus, String plusMinusUnit) {
 		Date returnDate = null;
 		if (referenceDate == null) {
-			return returnDate;
+			return null;
+		}
+		if (plusMinus == null) {
+			DateTime now = new DateTime();
+			// Should send next minute
+			return referenceDate.withHourOfDay(now.getHourOfDay()).withMinuteOfHour(now.getMinuteOfHour() + 1).toDate();
 		}
 		if (plusMinusUnit.equalsIgnoreCase("hours")) {
 			if (plusMinus < 0) {

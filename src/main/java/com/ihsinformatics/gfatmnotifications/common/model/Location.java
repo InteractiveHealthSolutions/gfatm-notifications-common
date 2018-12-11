@@ -92,6 +92,10 @@ public class Location extends BaseEntity {
 	public String getName() {
 		return name;
 	}
+	
+	public String getLocationName() {
+		return getName();
+	}
 
 	/**
 	 * @param name the name to set

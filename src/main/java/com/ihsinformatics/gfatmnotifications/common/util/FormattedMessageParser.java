@@ -16,7 +16,6 @@ import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -26,14 +25,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
-import com.ihsinformatics.gfatmnotifications.common.model.Patient;
-import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.util.ClassLoaderUtil;
 import com.ihsinformatics.util.CommandType;
 
@@ -42,38 +38,6 @@ import com.ihsinformatics.util.CommandType;
  *
  */
 public class FormattedMessageParser {
-
-	public static void main(String[] args) {
-		String message = "[encounter.return_visit_date.day]  [encounter.return_visit_date] {patient.getFullName}, aap ko yaad karana chahtain hain kay ap ko {encounter[encounterType=Childhood TB-Treatment Initiation].observations[concept=RETURN VISIT DATE].valueDatetime}, barooz [day of week in urdu], {patient.getHealthCenter} pe doctor ke paas moainey aur adwiyaat hasil karne ke liyey tashreef lana hai. Agar is kay mutaliq ap kuch poochna chahain tou AaoTBMitao helpline 080011982 pe rabta karain.";
-		Patient patient = new Patient();
-		patient.setLastName("bac");
-
-		User user = new User();
-		user.setLastName("LAST ANAME");
-
-		Encounter encounter = new Encounter();
-		encounter.setEncounterDate(new DateTime().getMillis());
-		encounter.setDateCreated(new DateTime().getMillis());
-
-		List<Observation> obsList = new ArrayList<>();
-		Observation observation = new Observation();
-		observation.setValueDatetime(new DateTime().getMillis());
-		obsList.add(observation);
-		observation = new Observation();
-		observation.setValueText("Test Val");
-		obsList.add(observation);
-		encounter.setObservations(obsList);
-
-		user.setLastName("LAST ANAME");
-
-		FormattedMessageParser parser = new FormattedMessageParser(null);
-		try {
-			parser.parseFormattedMessage(message, patient, user, encounter);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-
-	}
 
 	private Decision onNullDecision;
 
@@ -106,7 +70,7 @@ public class FormattedMessageParser {
 				String entityName = pair[0];
 				String propertyName = pair[1];
 				String values = "";
-				String resultPropertyVal = "";
+				String resultPropertyValue = "";
 				// Match the key with objects passed
 				try {
 					// Precaution! Turn first character into capital
@@ -117,23 +81,20 @@ public class FormattedMessageParser {
 						entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
 								+ entityName.substring(1, entityName.length());
 						object = getMatchingClassObject(entityName, objects);
-						resultPropertyVal = getPropertyValue(object, propertyName).toString();
+						resultPropertyValue = getPropertyValue(object, propertyName).toString();
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
-						String val =getObsValues(object, propertyName);
-						values = checkDateTimeFormat(val);
-						
-					} else {
-						values = resultPropertyVal;
-					}
+					if ("".equals(resultPropertyValue)) {
+						values = getObsValues(object, propertyName);
 
+					} else {
+						values = resultPropertyValue;
+					}
 					output.append(values);
 					// output.append(getPropertyValue(object, propertyName));
 				} catch (Exception e) {
-					// TODO : if any entity is not available or found then throw Exception
-					// discuss about this issue also
+					// TODO : if any entity is not available then throw Exception. Discuss
 					e.printStackTrace();
 				}
 			} else if (isEntityValuePairWithCondition(token)) {
@@ -174,21 +135,19 @@ public class FormattedMessageParser {
 	}
 
 	public String getObsValues(Object object, String propertyName) {
-		String obsVal = "";
 		if (object instanceof Encounter) {
 			List<Observation> observationList = ((Encounter) object).getObservations();
-			if (observationList != null && observationList.size() > 0) {
+			if (observationList != null && !observationList.isEmpty()) {
 				for (Observation observation : ((Encounter) object).getObservations()) {
 					if (ValidationUtil.variableMatchesWithConcept(propertyName, observation)) {
-						obsVal = getValOfDataType(observation); // observation.getValueDatetime().toString(); //
-						break;
+						return observation.getValue().toString();
 					}
 				}
 			} else {
-				System.out.print("no observations found against this encounter");
+				System.out.print("No observations found against this Encounter");
 			}
 		}
-		return obsVal;
+		return null;
 	}
 
 	public String getDayName(String timestamp) {
@@ -202,23 +161,6 @@ public class FormattedMessageParser {
 		System.out.println(
 				"Week Days :" + DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()));
 		return DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()).toString();
-	}
-
-	public String getValOfDataType(Observation observation) {
-
-		if (observation.getValueBoolean() != null) {
-			return observation.getValueBoolean().toString();
-		} else if (observation.getValue() != null) {
-			return observation.getValue().toString();
-		} else if (observation.getValueDatetime() != null) {
-			return observation.getValueDatetime().toString();
-		} else if (observation.getValueNumeric() != null) {
-			return observation.getValueNumeric().toString();
-		} else if (observation.getValueCodedName() != null) {
-			return observation.getValueCodedName().toString();
-		} else {
-			return "";
-		}
 	}
 
 	/**
@@ -280,9 +222,8 @@ public class FormattedMessageParser {
 	 * @throws SecurityException
 	 * @throws IllegalArgumentException
 	 */
-	public Object getPropertyValue(Object object, String fieldOrMethod)
-			throws SecurityException, IllegalArgumentException, ReflectiveOperationException {
-		Object value = null;
+	public Object getPropertyValue(Object object, String fieldOrMethod) throws ReflectiveOperationException {
+		Object value = "";
 		try {
 			Field field = object.getClass().getDeclaredField(fieldOrMethod);
 			boolean accessible = field.isAccessible();
@@ -370,37 +311,4 @@ public class FormattedMessageParser {
 		}
 		return true;
 	}
-	
-	public String checkDateTimeFormat(String inputData) {
-
-		String[] patterns = { "yyyy-MM-dd HH:mm:ss" };
-		boolean check = false;
-		for (int i = 0; i < patterns.length; i++) {
-			try {
-				DateTime.parse(inputData, DateTimeFormat.forPattern(patterns[i]));
-				check = true;
-				break;
-			} catch (Exception e) {
-				check = false;
-				break;
-			}
-		}
-		if (check) {
-			// Kindly revise this code...
-			SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
-			SimpleDateFormat format2 = new SimpleDateFormat("dd-MM-yyyy");
-			Date date;
-			try {
-				String dateString = inputData.substring(0, 10);
-				date = format1.parse(dateString);
-				return format2.format(date);
-			} catch (ParseException e) {
-				return "";
-			}
-		} else {
-			return inputData;
-		}
-	}
-
-	
 }

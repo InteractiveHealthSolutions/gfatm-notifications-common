@@ -56,7 +56,7 @@ public class SearchService {
 			if (parts.length < 2) {
 				throw new IllegalArgumentException(exceptionMessage);
 			}
-			String[] keyValue = parts[1].split(".");
+			String[] keyValue = parts[1].split("\\.");
 			String key = keyValue[0];
 			String value = keyValue[1];
 			if (keyValue.length < 2) {

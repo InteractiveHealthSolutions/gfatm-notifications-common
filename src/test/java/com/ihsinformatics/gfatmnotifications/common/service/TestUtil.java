@@ -21,6 +21,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.model.Rule;
+import com.ihsinformatics.gfatmnotifications.common.util.NotificationType;
 import com.ihsinformatics.util.ClassLoaderUtil;
 import com.ihsinformatics.util.CommandType;
 import com.ihsinformatics.util.DatabaseUtil;
@@ -34,6 +36,8 @@ public class TestUtil {
 	protected static final String PROP_FILE = "gfatm-notifications-test.properties";
 	protected static final String TEST_SCRIPT_FILE = "test_data.sql";
 	protected static DatabaseUtil dbUtil;
+	protected static Rule treatmentInitiationRule;
+	protected static Rule referralRule;
 
 	@BeforeClass
 	public static void createTestDb() {
@@ -46,10 +50,40 @@ public class TestUtil {
 			ScriptRunner runner = new ScriptRunner(dbUtil.getConnection(), false, true);
 			runner.runScript(new BufferedReader(new FileReader(file.getFile())));
 			Context.initialize(true, true, false);
+			initializeRules();
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("Database initialize script error " + e.getMessage());
 		}
+	}
+
+	public static void initializeRules() {
+		treatmentInitiationRule = new Rule();
+		treatmentInitiationRule.setType(NotificationType.SMS);
+		treatmentInitiationRule.setConditions("{\"entity\":\"encounter\",\"property\":\"treatment_initiated\",\"validate\":\"VALUE\",\"value\":\"YES\"}AND{\"entity\":\"encounter\",\"property\":\"return_visit_date\",\"validate\":\"NOTNULL\"}");
+		treatmentInitiationRule.setEncounterType("Childhood TB-Treatment Initiation");
+		treatmentInitiationRule.setFetchDuration("2 months");
+		treatmentInitiationRule.setMessageCode("CHTB-1REM");
+		treatmentInitiationRule.setPlusMinus(-1D);
+		treatmentInitiationRule.setPlusMinusUnit("DAYS");
+		treatmentInitiationRule.setRecordOnly("YES");
+		treatmentInitiationRule.setScheduleDate("return_visit_date");
+		treatmentInitiationRule.setSendTo("PATIENT");
+		treatmentInitiationRule.setStopCondition("{\"entity\":\"encounter\",\"encounter\":\"Childhood TB-TB Treatment Followup\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}OR{\"entity\":\"encounter\",\"encounter\":\"End of Followup\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}AND{\"entity\":\"encounter\",\"encounter\":\"End of Followup\",\"property\":\"treatment_outcome\",\"validate\":\"LIST\",\"value\":159791,160035,159874,160034,160031,165836,165837,164791,164792,166221,127750,166222,165891,160037,166288,165657}OR{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}AND{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"property\":\"referral_site\",\"validate\":\"VALUE\",\"value\":\"OTHER\"}OR{\"entity\":\"patient\",\"property\":\"getHealthCenterId\",\"validate\":\"query\",\"value\":\"SELECT location_id FROM location WHERE name not in ( 'SGHNK-KHI','IHK-KHI','GHAURI-CLINIC','ICD-KTR');\"}");
+
+		referralRule = new Rule();
+		referralRule.setType(NotificationType.SMS);
+		referralRule.setConditions("{\"entity\":\"encounter\",\"property\":referral_site,\"validate\":\"NOTNULL\"}");
+		referralRule.setEncounterType("Referral and Transfer");
+		referralRule.setFetchDuration("");
+		referralRule.setMessageCode("REF-TRANS");
+		referralRule.setPlusMinus(0D);
+		referralRule.setPlusMinusUnit("HOURS");
+		referralRule.setRecordOnly("TRUE");
+		referralRule.setScheduleDate("encounterDatetime");
+		referralRule.setSendTo("SUPERVISOR");
+		referralRule.setStopCondition("{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"property\":\"referral_site\",\"validate\":\"VALUE\",\"value\":\"OTHER\"}");
+
 	}
 
 	@Test

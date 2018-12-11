@@ -16,7 +16,5 @@ package com.ihsinformatics.gfatmnotifications.common.util;
  *
  */
 public enum NotificationType {
-
 	CALL, EMAIL, SMS
-
 }

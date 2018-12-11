@@ -16,6 +16,7 @@ import java.util.Date;
 
 import org.joda.time.DateTime;
 
+import com.ihsinformatics.gfatmnotifications.common.util.NotificationType;
 import com.ihsinformatics.util.DateTimeUtil;
 
 /**
@@ -24,7 +25,7 @@ import com.ihsinformatics.util.DateTimeUtil;
  */
 public class Rule {
 
-	private String type;
+	private NotificationType type;
 	private String encounterType;
 	private String conditions;
 	private String sendTo;
@@ -48,15 +49,15 @@ public class Rule {
 	/**
 	 * @return the type
 	 */
-	public String getType() {
+	public NotificationType getType() {
 		return type;
 	}
 
 	/**
-	 * @param type the type to set
+	 * @param notificationType the type to set
 	 */
-	public void setType(String type) {
-		this.type = type;
+	public void setType(NotificationType notificationType) {
+		this.type = notificationType;
 	}
 
 	/**

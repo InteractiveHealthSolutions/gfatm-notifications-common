@@ -43,6 +43,9 @@ public class ValidationUtil {
 	public static final String LOCATION_ID_REGEX = "[A-Z\\-]+";
 	public static final String USERNAME_REGEX = "[a-z]+\\.[a-z]+";
 	private static final Logger log = Logger.getLogger(Class.class.getName());
+	
+	private ValidationUtil() {
+	}
 
 	/**
 	 * Checks whether given patient ID matches with the ID scheme or not.
