@@ -3,6 +3,9 @@
  */
 package com.ihsinformatics.gfatmnotifications.common.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.SQLException;
@@ -12,10 +15,12 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.model.Location;
+import com.ihsinformatics.gfatmnotifications.common.model.Observation;
+import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.service.TestUtil;
 import com.ihsinformatics.util.RegexUtil;
-
-import junit.framework.Assert;
 
 /**
  * @author owais.hussain@ihsinformatics.com
@@ -23,45 +28,50 @@ import junit.framework.Assert;
  */
 public class ValidationUtilTest extends TestUtil {
 
+	private static Patient harry;
+	private static Location ihk;
+
 	@BeforeClass
 	public static void initialize() throws Exception {
+		harry = Context.getPatientByIdentifierOrGeneratedId(null, 7, dbUtil);
+		ihk = Context.getLocationByName("IHK-KHI", dbUtil);
 	}
 
 	@Test
 	public void testIsValidPatientId() {
 		String patientId = "ABCD3-1";
-		Assert.assertTrue(patientId + " should be validated!", ValidationUtil.isValidPatientId(patientId));
+		assertTrue(patientId + " should be validated!", ValidationUtil.isValidPatientId(patientId));
 	}
 
 	@Test
 	public void testInvalidPatientId() {
 		String patientId = "111111";
-		Assert.assertFalse(patientId + " should not be validated!", ValidationUtil.isValidPatientId(patientId));
+		assertFalse(patientId + " should not be validated!", ValidationUtil.isValidPatientId(patientId));
 	}
 
 	@Test
 	public void testIsValidLocationId() {
 		String locationId = "IHK-KHI";
-		Assert.assertTrue(locationId + " should be validated!", ValidationUtil.isValidLocationId(locationId));
+		assertTrue(locationId + " should be validated!", ValidationUtil.isValidLocationId(locationId));
 		locationId = "Indus Hospital";
-		Assert.assertFalse(locationId + " should not be validated!", ValidationUtil.isValidLocationId(locationId));
+		assertFalse(locationId + " should not be validated!", ValidationUtil.isValidLocationId(locationId));
 	}
 
 	@Test
 	public void testInvalidLocationId() {
 		String locationId = "Indus Hospital";
-		Assert.assertFalse(locationId + " should not be validated!", ValidationUtil.isValidLocationId(locationId));
+		assertFalse(locationId + " should not be validated!", ValidationUtil.isValidLocationId(locationId));
 	}
 
 	@Test
 	public void testIsValidContactNumber() {
 		String[] invalidContacts = { "12345", "03333333333", "03219876543", "03001234567" };
 		for (String contact : invalidContacts) {
-			Assert.assertFalse(contact + " should not be validated!", ValidationUtil.isValidContactNumber(contact));
+			assertFalse(contact + " should not be validated!", ValidationUtil.isValidContactNumber(contact));
 		}
 		String[] validContacts = { "03452345345", "03335689552", "03195549110", "03001122346" };
 		for (String contact : validContacts) {
-			Assert.assertTrue(contact + " should be validated!", ValidationUtil.isValidContactNumber(contact));
+			assertTrue(contact + " should be validated!", ValidationUtil.isValidContactNumber(contact));
 		}
 	}
 
@@ -71,8 +81,8 @@ public class ValidationUtilTest extends TestUtil {
 	 */
 	@Test
 	public void testValidateRegex() {
-		Assert.assertTrue(ValidationUtil.validateRegex(RegexUtil.EMAIL, "alpha@beta.gamma"));
-		Assert.assertTrue(ValidationUtil.validateRegex(RegexUtil.SQL_DATE, "2018-11-25"));
+		assertTrue(ValidationUtil.validateRegex(RegexUtil.EMAIL, "alpha@beta.gamma"));
+		assertTrue(ValidationUtil.validateRegex(RegexUtil.SQL_DATE, "2018-11-25"));
 	}
 
 	/**
@@ -98,10 +108,10 @@ public class ValidationUtilTest extends TestUtil {
 		Double[] invalidValues = { -1D, 11D };
 		String range = "0-3,5,7";
 		for (Double value : validValues) {
-			Assert.assertTrue(value + " should be validated!", ValidationUtil.validateRange(range, value));
+			assertTrue(value + " should be validated!", ValidationUtil.validateRange(range, value));
 		}
 		for (Double value : invalidValues) {
-			Assert.assertFalse(value + " should not be validated!", ValidationUtil.validateRange(range, value));
+			assertFalse(value + " should not be validated!", ValidationUtil.validateRange(range, value));
 		}
 	}
 
@@ -117,10 +127,10 @@ public class ValidationUtilTest extends TestUtil {
 		String[] invalidValues = { "Bravo", "Charlie" };
 		String list = "Alpha,Beta,Gamma,Delta,Epsilon,Zeta";
 		for (String value : validValues) {
-			Assert.assertTrue(value + " should be validated!", ValidationUtil.validateList(list, value));
+			assertTrue(value + " should be validated!", ValidationUtil.validateList(list, value));
 		}
 		for (String value : invalidValues) {
-			Assert.assertFalse(value + " should not be validated!", ValidationUtil.validateList(list, value));
+			assertFalse(value + " should not be validated!", ValidationUtil.validateList(list, value));
 		}
 	}
 
@@ -133,38 +143,8 @@ public class ValidationUtilTest extends TestUtil {
 	@Test
 	public void testValidateQuery() throws SQLException {
 		String query = "select system_id from users where username = 'daemon'";
-		Assert.assertTrue(ValidationUtil.validateQuery(query, "daemon"));
-		Assert.assertFalse(ValidationUtil.validateQuery(query, null));
-	}
-
-	/**
-	 * Test method for
-	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateStopConditions(com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.gfatmnotifications.common.model.Encounter, com.ihsinformatics.gfatmnotifications.common.model.Rule, com.ihsinformatics.util.DatabaseUtil)}.
-	 */
-	@Test
-	@Ignore
-	public void testValidateANDStopConditions() {
-		fail("Not yet implemented");
-	}
-
-	/**
-	 * Test method for
-	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateStopConditions(com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.gfatmnotifications.common.model.Encounter, com.ihsinformatics.gfatmnotifications.common.model.Rule, com.ihsinformatics.util.DatabaseUtil)}.
-	 */
-	@Test
-	@Ignore
-	public void testValidateORStopConditions() {
-		fail("Not yet implemented");
-	}
-
-	/**
-	 * Test method for
-	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateSingleStopCondition(java.lang.String, com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.util.DatabaseUtil)}.
-	 */
-	@Test
-	@Ignore
-	public void testValidateSingleStopCondition() {
-		fail("Not yet implemented");
+		assertTrue(ValidationUtil.validateQuery(query, "daemon"));
+		assertFalse(ValidationUtil.validateQuery(query, null));
 	}
 
 	/**
@@ -180,11 +160,23 @@ public class ValidationUtilTest extends TestUtil {
 	/**
 	 * Test method for
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#getEntityPropertyValue(java.lang.Object, java.lang.String)}.
+	 * @throws Exception 
 	 */
 	@Test
-	@Ignore
-	public void testGetEntityPropertyValue() {
-		fail("Not yet implemented");
+	public void testGetPatientPropertyValueByPropertyName() throws Exception {
+		String value = ValidationUtil.getEntityPropertyValue(harry, "givenName");
+		assertEquals("Harry", value);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#getEntityPropertyValue(java.lang.Object, java.lang.String)}.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testGetLocationPropertyValueByMethodName() throws Exception {
+		String value = ValidationUtil.getEntityPropertyValue(ihk, "getLocationName");
+		assertEquals("IHK-KHI", value);
 	}
 
 	/**
@@ -192,9 +184,40 @@ public class ValidationUtilTest extends TestUtil {
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#variableMatchesWithConcept(java.lang.String, com.ihsinformatics.gfatmnotifications.common.model.Observation)}.
 	 */
 	@Test
-	@Ignore
-	public void testVariableMatchesWithConcept() {
-		fail("Not yet implemented");
+	public void shouldMatchIntegerVariableMatchesWithConcept() {
+		String variable = "5096";
+		Observation obs = new Observation();
+		obs.setConceptId(5096);
+		obs.setConceptName("RETURN VISIT DATE");
+		obs.setConceptShortName("return_visit_date");
+		assertTrue(ValidationUtil.variableMatchesWithConcept(variable, obs));
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#variableMatchesWithConcept(java.lang.String, com.ihsinformatics.gfatmnotifications.common.model.Observation)}.
+	 */
+	@Test
+	public void shouldMatchVariableNameMatchesWithConcept() {
+		String variable = "RETURN VISIT DATE";
+		Observation obs = new Observation();
+		obs.setConceptId(5096);
+		obs.setConceptName("RETURN VISIT DATE");
+		obs.setConceptShortName("return_visit_date");
+		assertTrue(ValidationUtil.variableMatchesWithConcept(variable, obs));
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#variableMatchesWithConcept(java.lang.String, com.ihsinformatics.gfatmnotifications.common.model.Observation)}.
+	 */
+	@Test
+	public void shouldMatchVariableShorrNameMatchesWithConcept() {
+		String variable = "return_visit_date";
+		Observation obs = new Observation();
+		obs.setConceptId(5096);
+		obs.setConceptName("RETURN VISIT DATE");
+		obs.setConceptShortName("return_visit_date");
+		assertTrue(ValidationUtil.variableMatchesWithConcept(variable, obs));
+	}
 }

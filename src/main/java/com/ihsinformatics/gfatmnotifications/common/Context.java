@@ -540,8 +540,11 @@ public class Context {
 		query.append(
 				"left join obs as cons on pa.person_id = cons.person_id and cons.concept_id = 164700 and cons.voided = 0 ");
 		query.append("where pt.voided = 0 ");
+		// Exclude patients against whom no encounter was filled in last 100 days
 		query.append(
-				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and encounter_type in (4, 7, 29, 67, 104) and datediff(current_date(), encounter_datetime) < 100) ");
+				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and datediff(current_date(), encounter_datetime) < 100) ");
+		// Exclude patients where last encounter filled was End of follow-up
+		query.append("and (select ifnull(encounter_type, 0) from encounter where patient_id = pt.patient_id and voided = 0 order by encounter_datetime desc limit 1) <> 190 ");
 		query.append("and ifnull(cons.value_coded, 1065) = 1065 ");
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {

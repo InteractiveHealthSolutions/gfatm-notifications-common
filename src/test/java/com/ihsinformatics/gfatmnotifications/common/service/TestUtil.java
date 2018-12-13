@@ -69,7 +69,7 @@ public class TestUtil {
 		treatmentInitiationRule.setRecordOnly("YES");
 		treatmentInitiationRule.setScheduleDate("return_visit_date");
 		treatmentInitiationRule.setSendTo("PATIENT");
-		treatmentInitiationRule.setStopCondition("{\"entity\":\"encounter\",\"encounter\":\"Childhood TB-TB Treatment Followup\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}OR{\"entity\":\"encounter\",\"encounter\":\"End of Followup\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}AND{\"entity\":\"encounter\",\"encounter\":\"End of Followup\",\"property\":\"treatment_outcome\",\"validate\":\"LIST\",\"value\":159791,160035,159874,160034,160031,165836,165837,164791,164792,166221,127750,166222,165891,160037,166288,165657}OR{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}AND{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"property\":\"referral_site\",\"validate\":\"VALUE\",\"value\":\"OTHER\"}OR{\"entity\":\"patient\",\"property\":\"getHealthCenterId\",\"validate\":\"query\",\"value\":\"SELECT location_id FROM location WHERE name not in ( 'SGHNK-KHI','IHK-KHI','GHAURI-CLINIC','ICD-KTR');\"}");
+		treatmentInitiationRule.setStopConditions("{\"entity\":\"encounter\",\"encounter\":\"Childhood TB-TB Treatment Followup\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}OR{\"entity\":\"encounter\",\"encounter\":\"End of Followup\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}AND{\"entity\":\"encounter\",\"encounter\":\"End of Followup\",\"property\":\"treatment_outcome\",\"validate\":\"LIST\",\"value\":159791,160035,159874,160034,160031,165836,165837,164791,164792,166221,127750,166222,165891,160037,166288,165657}OR{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"validate\":\"encounter\",\"after\":\"Childhood TB-Treatment Initiation\"}AND{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"property\":\"referral_site\",\"validate\":\"VALUE\",\"value\":\"OTHER\"}OR{\"entity\":\"patient\",\"property\":\"getHealthCenterId\",\"validate\":\"query\",\"value\":\"SELECT location_id FROM location WHERE name not in ( 'SGHNK-KHI','IHK-KHI','GHAURI-CLINIC','ICD-KTR');\"}");
 
 		referralRule = new Rule();
 		referralRule.setType(NotificationType.SMS);
@@ -82,7 +82,7 @@ public class TestUtil {
 		referralRule.setRecordOnly("TRUE");
 		referralRule.setScheduleDate("encounterDatetime");
 		referralRule.setSendTo("SUPERVISOR");
-		referralRule.setStopCondition("{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"property\":\"referral_site\",\"validate\":\"VALUE\",\"value\":\"OTHER\"}");
+		referralRule.setStopConditions("{\"entity\":\"encounter\",\"encounter\":\"Referral and Transfer\",\"property\":\"referral_site\",\"validate\":\"VALUE\",\"value\":\"OTHER\"}");
 
 	}
 

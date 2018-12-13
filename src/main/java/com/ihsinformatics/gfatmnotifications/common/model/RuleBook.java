@@ -77,7 +77,7 @@ public class RuleBook {
 			rule.setMessageCode(row.getCell(messageCodeColumn).getStringCellValue());
 			try {
 				rule.setFetchDuration(row.getCell(fetchDurationColumn).getStringCellValue());
-				rule.setStopCondition(row.getCell(stopConditionColumn).getStringCellValue());
+				rule.setStopConditions(row.getCell(stopConditionColumn).getStringCellValue());
 				rule.setDatabaseConnectionName(row.getCell(databaseConnectionNameColumn).getStringCellValue());
 				rule.setRecordOnly(row.getCell(recordOnlyColumn).getStringCellValue());
 			} catch (Exception e) {

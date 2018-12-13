@@ -33,7 +33,7 @@ public class Rule {
 	private Double plusMinus;
 	private String plusMinusUnit;
 	private String messageCode;
-	private String stopCondition;
+	private String stopConditions;
 	private String fetchDuration;
 	private String fetchSource;
 	private String recordOnly;
@@ -161,15 +161,15 @@ public class Rule {
 	/**
 	 * @return the stopCondition
 	 */
-	public String getStopCondition() {
-		return stopCondition;
+	public String getStopConditions() {
+		return stopConditions;
 	}
 
 	/**
-	 * @param stopCondition the stopCondition to set
+	 * @param stopConditions the stopCondition to set
 	 */
-	public void setStopCondition(String stopCondition) {
-		this.stopCondition = stopCondition;
+	public void setStopConditions(String stopConditions) {
+		this.stopConditions = stopConditions;
 	}
 
 	public String getFetchDuration() {
