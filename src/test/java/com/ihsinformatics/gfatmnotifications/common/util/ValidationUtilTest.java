@@ -6,16 +6,15 @@ package com.ihsinformatics.gfatmnotifications.common.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.sql.SQLException;
 import java.util.InvalidPropertiesFormatException;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
+import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
@@ -29,12 +28,86 @@ import com.ihsinformatics.util.RegexUtil;
 public class ValidationUtilTest extends TestUtil {
 
 	private static Patient harry;
+	private static Patient fast;
 	private static Location ihk;
 
 	@BeforeClass
 	public static void initialize() throws Exception {
 		harry = Context.getPatientByIdentifierOrGeneratedId(null, 7, dbUtil);
+		fast = Context.getPatientByIdentifierOrGeneratedId(null, 2601, dbUtil);
 		ihk = Context.getLocationByName("IHK-KHI", dbUtil);
+	}
+
+	@Test
+	public void shouldValidateSingleNotNullCondition() {
+		String conditions = "{\"entity\":\"encounter\",\"property\":referral_site,\"validate\":\"NOTNULL\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("FAST-Referral Form"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(conditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateSingleEqualsValueCondition() {
+		String conditions = "{\"entity\":\"encounter\",\"property\":referral_site,\"validate\":\"EQUALS\",\"value\":\"IHK-KHI\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("FAST-Referral Form"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(conditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateSingleNotEqualsValueCondition() {
+		String conditions = "{\"entity\":\"encounter\",\"property\":referral_site,\"validate\":\"NOTEQUALS\",\"value\":\"Other\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("FAST-Referral Form"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(conditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateANDConditions() {
+		String conditions = "{\"entity\":\"encounter\",\"property\":\"patient_source\",\"validate\":\"LIST\",\"value\":\"1648,164239,124068\"}"
+				+ "AND" + "{\"entity\":\"encounter\",\"property\":\"primary_contact\",\"validate\":\"NOTNULL\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("Patient Information"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(conditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateORConditions() {
+		String conditions = "{\"entity\":\"encounter\",\"property\":\"address_provided\",\"validate\":\"EQUALS\",\"value\":\"1065\"}"
+				+ "OR"
+				+ "{\"entity\":\"encounter\",\"property\":\"patient_source\",\"validate\":\"EQUALS\",\"value\":\"1648\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("Patient Information"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(conditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateCombinedConditions() {
+		String conditions = "{\"entity\":\"encounter\",\"property\":\"patient_source\",\"validate\":\"EQUALS\",\"value\":\"1648\"}"
+				+ "OR"
+				+ "{\"entity\":\"encounter\",\"property\":\"address_provided\",\"validate\":\"EQUALS\",\"value\":\"1065\"}"
+				+ "AND" + "{\"entity\":\"encounter\",\"property\":\"primary_contact\",\"validate\":\"EXISTS\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("Patient Information"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(conditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateStopCondition() {
+		String stopConditions = "{\"entity\":\"encounter\",\"encounter\":\"FAST-End of Followup\",\"property\":\"treatment_initiated_referralsite\",\"validate\":\"EQUALS\",\"value\":\"1065\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("FAST-Treatment Followup"), true, dbUtil);
+		assertTrue(ValidationUtil.validateConditions(stopConditions, fast, ihk, encounter, dbUtil));
+	}
+
+	@Test
+	public void shouldValidateStopConditionWithQuery() {
+		String query = "select username from users";
+		String stopConditions = "{\"entity\":\"Patient\",\"property\":\"treatmentSupporter\",\"validate\":\"QUERY\",\"value\":\"" + query + "\"}";
+		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(),
+				Context.getEncounterTypeId("FAST-Treatment Followup"), true, dbUtil);
+		fast.setTreatmentSupporter("owais.hussain");
+		assertTrue(ValidationUtil.validateConditions(stopConditions, fast, ihk, encounter, dbUtil));
 	}
 
 	@Test
@@ -149,18 +222,9 @@ public class ValidationUtilTest extends TestUtil {
 
 	/**
 	 * Test method for
-	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateConditions(com.ihsinformatics.gfatmnotifications.common.model.Patient, com.ihsinformatics.gfatmnotifications.common.model.Location, com.ihsinformatics.gfatmnotifications.common.model.Encounter, com.ihsinformatics.gfatmnotifications.common.model.Rule)}.
-	 */
-	@Test
-	@Ignore
-	public void testValidateConditions() {
-		fail("Not yet implemented");
-	}
-
-	/**
-	 * Test method for
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#getEntityPropertyValue(java.lang.Object, java.lang.String)}.
-	 * @throws Exception 
+	 * 
+	 * @throws Exception
 	 */
 	@Test
 	public void testGetPatientPropertyValueByPropertyName() throws Exception {
@@ -171,7 +235,8 @@ public class ValidationUtilTest extends TestUtil {
 	/**
 	 * Test method for
 	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#getEntityPropertyValue(java.lang.Object, java.lang.String)}.
-	 * @throws Exception 
+	 * 
+	 * @throws Exception
 	 */
 	@Test
 	public void testGetLocationPropertyValueByMethodName() throws Exception {

@@ -49,8 +49,9 @@ public class ValidationUtil {
 	public static final String VALIDATE_STRING = "validate";
 	public static final String ENTITY_STRING = "entity";
 	public static final String PROPERTY_STRING = "property";
+	public static final String VALUE_STRING = "value";
 
-	public static final String VALUE_STRING = "VALUE";
+	public static final String EQUALS_STRING = "EQUALS";
 	public static final String NOTEQUALS_STRING = "NOTEQUALS";
 	public static final String RANGE_STRING = "RANGE";
 	public static final String REGEX_STRING = "REGEX";
@@ -235,103 +236,23 @@ public class ValidationUtil {
 	}
 
 	/**
-	 * MOAV (mother of all validations). This method first checks if the input value
-	 * is of give dataType (String, Double, etc.), then matches regex. The regex
-	 * must be in format: LHS=RHS. If LHS is "REGEX", then RHS is expected to be a
-	 * valid regular expression to match value with; If LHS is "LIST", then RHS
-	 * should be a comma-separated list of strings to lookup value in; If LHS is
-	 * "RANGE", then RHS should be a set of range parts, like
-	 * 1-10,2.2,3.2,5.5,17.1-18.9, etc. in which, the value will be checked; If LHS
-	 * is "QUERY", then RHS is expected to be a SQL to lookup the value in database
+	 * Validates all conditions and stop conditions in given rule against parameter
+	 * objects
 	 * 
-	 * @param regex
-	 * @param dataType
-	 * @param value
+	 * @param rule
+	 * @param patient
+	 * @param location
+	 * @param encounter
+	 * @param dbUtil
 	 * @return
-	 * @throws InvalidPropertiesFormatException
-	 * @throws PatternSyntaxException
-	 * @throws ClassNotFoundException
-	 * @throws SQLException
 	 */
-	public static boolean validateData(String regex, String dataType, String value)
-			throws InvalidPropertiesFormatException, SQLException {
-		boolean isValidDataType = false;
-		boolean isValidValue = false;
-		dataType = dataType.toLowerCase();
-		DataType dataTypeEnum = DataType.getDataTypeByAlias(dataType);
-		// Validate according to given data type
-		switch (dataTypeEnum) {
-		case BOOLEAN:
-			isValidDataType = value.matches("Y|N|y|n|true|false|True|False|TRUE|FALSE|0|1");
-			break;
-		case CHARACTER:
-			isValidDataType = value.length() == 1;
-			break;
-		case DATE:
-			isValidDataType = value.matches(RegexUtil.SQL_DATE);
-			break;
-		case DATETIME:
-			isValidDataType = value.matches(RegexUtil.SQL_DATETIME);
-			break;
-		case FLOAT:
-			isValidDataType = value.matches(RegexUtil.DECIMAL);
-			break;
-		case INTEGER:
-			isValidDataType = value.matches(RegexUtil.INTEGER);
-			break;
-		case STRING:
-			isValidDataType = true;
-			break;
-		case TIME:
-			isValidDataType = value.matches(RegexUtil.SQL_TIME);
-			break;
-		default:
-			break;
-		}
-		// Check if validation regex is provided
-		if (regex == null) {
-			isValidValue = true;
-		} else {
-			String[] parts = regex.split("=");
-			if (parts.length != 2) {
-				throw new InvalidPropertiesFormatException(
-						"Invalid value provided for validation regex. Must be in format LHS=RHS");
-			}
-			String type = parts[0];
-			String validatorStr = parts[1];
-			// Validate regular expression
-			if (type.equalsIgnoreCase(REGEX_STRING)) {
-				isValidValue = validateRegex(validatorStr, value);
-			}
-			// Validate range
-			else if (type.equalsIgnoreCase(RANGE_STRING)) {
-				try {
-					double num = Double.parseDouble(value);
-					isValidValue = validateRange(validatorStr, num);
-				} catch (NumberFormatException e) {
-					isValidValue = false;
-				}
-			}
-			// Validate comma-separated list
-			else if (type.equalsIgnoreCase(LIST_STRING)) {
-				isValidValue = validateList(validatorStr, value);
-			}
-			// Validate using query
-			else if (type.equalsIgnoreCase(QUERY_STRING)) {
-				isValidValue = validateQuery(validatorStr, value);
-			}
-			// Validate matching single value
-			if (type.equalsIgnoreCase(VALUE_STRING)) {
-				isValidValue = validatorStr.equalsIgnoreCase(value);
-			}
-		}
-		return (isValidDataType && isValidValue);
-	}
-
 	public static boolean validateRule(Rule rule, Patient patient, Location location, Encounter encounter,
 			DatabaseUtil dbUtil) {
-		return validateConditions(rule.getConditions(), patient, location, encounter, dbUtil)
-				&& validateConditions(rule.getStopConditions(), patient, location, encounter, dbUtil);
+		boolean conditionsValid = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
+		if (conditionsValid) {
+			conditionsValid = !validateConditions(rule.getStopConditions(), patient, location, encounter, dbUtil);
+		}
+		return conditionsValid;
 	}
 
 	/**
@@ -349,31 +270,37 @@ public class ValidationUtil {
 		if ("".equals(conditions)) {
 			return true;
 		}
+		// Check if the encounter requires to be retrieved
 		String orPattern = "(.)+OR(.)+";
 		String andPattern = "(.)+AND(.)+";
 		if (conditions.matches(orPattern) && conditions.matches(andPattern)) {
-			String[] orConditions = conditions.split("( )?OR( )?");
-			for (String condition : orConditions) {
-				// No need to proceed even if one condition is true
+			String[] conditionTokens = conditions.split("( )?OR( )?");
+			for (String condition : conditionTokens) {
+				// First, process all singleton OR conditions
+				if (!condition.matches(andPattern)) {
+					if (validateSingleCondition(condition, patient, location, encounter, dbUtil)) {
+						return true;
+					}
+				}
+			}
+			// If we are here, none of the OR conditions were fulfilled
+			for (String condition : conditionTokens) {
+				// First, process all AND conditions
 				if (condition.matches(andPattern)) {
 					String[] andConditions = condition.split("( )?AND( )?");
 					for (String nestedCondition : andConditions) {
-						// No need to proceed even if one condition is false
 						if (!validateSingleCondition(nestedCondition, patient, location, encounter, dbUtil)) {
 							return false;
 						}
 					}
-					return true;
-				} else {
-					return validateSingleCondition(condition, patient, location, encounter, dbUtil);
 				}
 			}
+			return true;
 		}
 		if (conditions.matches(orPattern)) {
 			String[] orConditions = conditions.split("( )?OR( )?");
 			for (String condition : orConditions) {
 				// No need to proceed even if one condition is true
-
 				if (validateSingleCondition(condition, patient, location, encounter, dbUtil)) {
 					return true;
 				}
@@ -406,31 +333,29 @@ public class ValidationUtil {
 	public static boolean validateSingleCondition(String condition, Patient patient, Location location,
 			Encounter encounter, DatabaseUtil dbUtil) {
 		JSONObject jsonObject = JsonUtil.getJSONObject(condition);
-		// Trigger encounter cannot be NULL or invalid
-		String triggerEncounterName = jsonObject.getString("encounter");
-		if (triggerEncounterName == null) {
-			throw new MissingFormatArgumentException(
-					"Exact name of a trigger encounter must be provided in Encounter column for condition: "
-							+ condition);
-		}
-		// Search in metadata
-		if (!Context.getEncounterTypes().containsValue(triggerEncounterName)) {
-			throw new MissingFormatArgumentException(
-					"The encounter name provided as trigger does not match with any Encounter Type in metadata in condition: "
-							+ condition);
-		}
 		// Prerequisites must be checked
 		if (!(jsonObject.has(ENTITY_STRING) && jsonObject.has(PROPERTY_STRING) && jsonObject.has(VALIDATE_STRING))) {
 			throw new MissingFormatArgumentException(
 					"Condition must contain all required keys: entity, property and validate.");
 		}
+		// Check if there's another encounter to retrieve
+		if (jsonObject.has("encounter")) {
+			String encounterName = jsonObject.getString("encounter");
+			encounter = Context.getEncounterByPatientIdentifier(patient.getPatientIdentifier(),
+					Context.getEncounterTypeId(encounterName), true, dbUtil);
+			if (encounter == null) {
+				return true;
+			}
+		}
 		// Clear to proceed
 		String entity = jsonObject.getString(ENTITY_STRING);
 		String validationType = jsonObject.getString(VALIDATE_STRING);
 		String property = jsonObject.getString(PROPERTY_STRING);
-		String expectedValue = jsonObject.getString(VALUE_STRING);
+		String expectedValue = null;
+		if (jsonObject.has(VALUE_STRING)) {
+			expectedValue = jsonObject.getString(VALUE_STRING);
+		}
 		String actualValue = null;
-// {entity:encounter,encounter:Referral and Transfer,property:referral_site,validate:VALUE,value:OTHER}
 		// In case of Encounter, search through observations
 		if (entity.equalsIgnoreCase("encounter")) {
 			if (encounter.getObservations() == null) {
@@ -439,10 +364,10 @@ public class ValidationUtil {
 			for (Observation obs : encounter.getObservations()) {
 				// Search for the observation's concept name matching the variable name
 				if (variableMatchesWithConcept(property, obs)) {
-					if (validationType.equalsIgnoreCase(LIST_STRING)) {
-						actualValue = obs.getValueCoded().toString();
-					} else {
+					if (obs.getValueCoded() == null) {
 						actualValue = obs.getValue().toString();
+					} else {
+						actualValue = obs.getValueCoded().toString();
 					}
 					try {
 						return validateValue(validationType, expectedValue, actualValue);
@@ -480,7 +405,7 @@ public class ValidationUtil {
 	private static boolean validateValue(String validationType, String expectedValue, String actualValue)
 			throws InvalidPropertiesFormatException, SQLException {
 		switch (validationType) {
-		case VALUE_STRING:
+		case EQUALS_STRING:
 			return actualValue.equalsIgnoreCase(expectedValue);
 		case NOTEQUALS_STRING:
 			return !actualValue.equalsIgnoreCase(expectedValue);

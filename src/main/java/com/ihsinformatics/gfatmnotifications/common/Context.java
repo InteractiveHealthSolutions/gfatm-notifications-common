@@ -112,16 +112,16 @@ public class Context {
 		DateTime start = new DateTime();
 		if (initMetadata) {
 			if (encounterTypes == null) {
-				loadEncounterTypes(Context.getDwDb());
+				loadEncounterTypes(Context.getOpenmrsDb());
 			}
 			if (relationshipTypes == null) {
-				loadRelationshipTypes(Context.getDwDb());
+				loadRelationshipTypes(Context.getOpenmrsDb());
 			}
 			if (users == null) {
-				loadUsers(Context.getDwDb());
+				loadUsers(Context.getOpenmrsDb());
 			}
 			if (locations == null) {
-				loadLocations(Context.getDwDb());
+				loadLocations(Context.getOpenmrsDb());
 			}
 		}
 		if (initPatientData && patients == null) {

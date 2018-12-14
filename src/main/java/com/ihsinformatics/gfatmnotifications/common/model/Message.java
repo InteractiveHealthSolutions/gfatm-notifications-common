@@ -18,18 +18,22 @@ package com.ihsinformatics.gfatmnotifications.common.model;
 public class Message {
 	private String preparedMessage;
 	private String contact;
+	private String preparedOn;
 	private String sendOn;
 	private String encounterType;
 	private String recipient;
+	private Rule rule;
 
-	public Message(String preparedMessage, String contactNumber, String encounterType, String sendOn,
-			String recipient) {
+	public Message(String preparedMessage, String contactNumber, String encounterType, String preparedOn, String sendOn,
+			String recipient, Rule rule) {
 		super();
 		this.setPreparedMessage(preparedMessage);
 		this.setContact(contactNumber);
+		this.setPreparedOn(preparedOn);
 		this.setEncounterType(encounterType);
 		this.setSendOn(sendOn);
 		this.setRecipient(recipient);
+		this.setRule(rule);
 	}
 
 	/**
@@ -58,6 +62,20 @@ public class Message {
 	 */
 	public void setContact(String contact) {
 		this.contact = contact;
+	}
+
+	/**
+	 * @return the preparedOn
+	 */
+	public String getPreparedOn() {
+		return preparedOn;
+	}
+
+	/**
+	 * @param preparedOn the preparedOn to set
+	 */
+	public void setPreparedOn(String preparedOn) {
+		this.preparedOn = preparedOn;
 	}
 
 	/**
@@ -100,5 +118,19 @@ public class Message {
 	 */
 	public void setRecipient(String recipient) {
 		this.recipient = recipient;
+	}
+
+	/**
+	 * @return the rule
+	 */
+	public Rule getRule() {
+		return rule;
+	}
+
+	/**
+	 * @param rule the rule to set
+	 */
+	public void setRule(Rule rule) {
+		this.rule = rule;
 	}
 }

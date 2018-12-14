@@ -38,6 +38,41 @@ public class Rule {
 	private String fetchSource;
 	private String recordOnly;
 
+	public Rule() {
+	}
+
+	/**
+	 * @param type
+	 * @param encounterType
+	 * @param conditions
+	 * @param sendTo
+	 * @param scheduleDate
+	 * @param plusMinus
+	 * @param plusMinusUnit
+	 * @param messageCode
+	 * @param stopConditions
+	 * @param fetchDuration
+	 * @param fetchSource
+	 * @param recordOnly
+	 */
+	public Rule(NotificationType type, String encounterType, String conditions, String sendTo, String scheduleDate,
+			Double plusMinus, String plusMinusUnit, String messageCode, String stopConditions, String fetchDuration,
+			String fetchSource, String recordOnly) {
+		super();
+		this.type = type;
+		this.encounterType = encounterType;
+		this.conditions = conditions;
+		this.sendTo = sendTo;
+		this.scheduleDate = scheduleDate;
+		this.plusMinus = plusMinus;
+		this.plusMinusUnit = plusMinusUnit;
+		this.messageCode = messageCode;
+		this.stopConditions = stopConditions;
+		this.fetchDuration = fetchDuration;
+		this.fetchSource = fetchSource;
+		this.recordOnly = recordOnly;
+	}
+
 	public String getDatabaseConnectionName() {
 		return fetchSource;
 	}
@@ -236,6 +271,6 @@ public class Rule {
 	@Override
 	public String toString() {
 		return type + ", " + encounterType + ", " + sendTo + ", " + scheduleDate + ", " + plusMinus + ", "
-				+ plusMinusUnit + ", " + messageCode;
+				+ plusMinusUnit + ", " + messageCode + ", " + conditions + ", " + stopConditions;
 	}
 }
