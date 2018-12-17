@@ -544,7 +544,8 @@ public class Context {
 		query.append(
 				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and datediff(current_date(), encounter_datetime) < 100) ");
 		// Exclude patients where last encounter filled was End of follow-up
-		query.append("and (select ifnull(encounter_type, 0) from encounter where patient_id = pt.patient_id and voided = 0 order by encounter_datetime desc limit 1) <> 190 ");
+		query.append(
+				"and (select ifnull(encounter_type, 0) from encounter where patient_id = pt.patient_id and voided = 0 order by encounter_datetime desc limit 1) <> 190 ");
 		query.append("and ifnull(cons.value_coded, 1065) = 1065 ");
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
@@ -1046,26 +1047,25 @@ public class Context {
 		return returnDate;
 	}
 
-	public static DateTime getReferenceDate(String scheduleDate, Encounter encounter) throws Exception {
+	public static DateTime getReferenceDate(String variableName, Encounter encounter) {
 		DateTime referenceDate = null;
 		FormattedMessageParser formattedMessageParser = new FormattedMessageParser(Decision.SKIP);
 		try {
 			Object object;
-			object = formattedMessageParser.getPropertyValue(encounter, scheduleDate);
+			object = formattedMessageParser.getPropertyValue(encounter, variableName);
 			if (object != null) {
 				if (object instanceof Long) {
-					return referenceDate = new DateTime((Long) object);
+					return new DateTime((Long) object);
 				} else {
-					log.severe("Schedule Date must be a Date");
-					throw new Exception("Schedule Date Object is not a Date ");
+					throw new IllegalArgumentException("Schedule Date Object is not a Date.");
 				}
 			}
 		} catch (SecurityException | IllegalArgumentException | ReflectiveOperationException e) {
-			e.printStackTrace();
+			log.severe(e.getMessage());
 		}
 		Observation target = null;
 		for (Observation observation : encounter.getObservations()) {
-			if (ValidationUtil.variableMatchesWithConcept(scheduleDate, observation)) {
+			if (ValidationUtil.variableMatchesWithConcept(variableName, observation)) {
 				target = observation;
 				referenceDate = new DateTime(target.getValueDatetime());
 				break;

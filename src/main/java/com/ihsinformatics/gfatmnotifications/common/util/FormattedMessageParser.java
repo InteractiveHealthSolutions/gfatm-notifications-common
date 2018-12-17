@@ -173,7 +173,7 @@ public class FormattedMessageParser {
 	 * @return
 	 */
 	public String parseSqlQueries(String text) {
-		List<String> queries = new ArrayList<String>();
+		List<String> queries = new ArrayList<>();
 		Pattern p = Pattern.compile("\\$(.*?)\\$");
 		Matcher m = p.matcher(text.toString());
 		// First, detect all queries
@@ -264,7 +264,7 @@ public class FormattedMessageParser {
 	 * @return
 	 */
 	public List<String> tokenizeMessage(String string) {
-		List<String> tokens = new ArrayList<String>();
+		List<String> tokens = new ArrayList<>();
 		char[] charArray = string.toCharArray();
 		StringBuilder token = new StringBuilder();
 		for (char c : charArray) {
@@ -291,7 +291,7 @@ public class FormattedMessageParser {
 	 * @return
 	 */
 	public boolean areParenthesesBalanced(String message) {
-		Map<Character, Character> parentheses = new HashMap<Character, Character>();
+		Map<Character, Character> parentheses = new HashMap<>();
 		parentheses.put('[', ']');
 		parentheses.put('{', '}');
 		parentheses.put('(', ')');
@@ -301,7 +301,7 @@ public class FormattedMessageParser {
 		if ((clean.length() % 2) != 0) {
 			return false;
 		}
-		Stack<Character> stack = new Stack<Character>();
+		Stack<Character> stack = new Stack<>();
 		for (int i = 0; i < clean.length(); i++) {
 			if (parentheses.containsKey(clean.charAt(i))) {
 				stack.push(clean.charAt(i));
