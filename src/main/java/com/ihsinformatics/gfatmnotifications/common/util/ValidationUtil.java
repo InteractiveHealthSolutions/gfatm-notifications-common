@@ -55,7 +55,8 @@ public class ValidationUtil {
 	public static final String NOTEQUALS_STRING = "NOTEQUALS";
 	public static final String RANGE_STRING = "RANGE";
 	public static final String REGEX_STRING = "REGEX";
-	public static final String QUERY_STRING = "QUERY";
+	public static final String INQUERY_STRING = "QUERY";
+	public static final String NOTINQUERY_STRING = "NOTQUERY";
 	public static final String LIST_STRING = "LIST";
 	public static final String NOTNULL_STRING = "NOTNULL";
 	public static final String PRESENT_STRING = "PRESENT";
@@ -216,14 +217,14 @@ public class ValidationUtil {
 	}
 
 	/**
-	 * Validates a value against given query
+	 * Searches for a value in results against a query. Returns true if found
 	 * 
 	 * @param query
 	 * @param value
 	 * @return
 	 * @throws SQLException
 	 */
-	public static boolean validateQuery(String query, String value) throws SQLException {
+	public static boolean validateInQuery(String query, String value) throws SQLException {
 		Object[][] data = Context.getOpenmrsDb().getTableData(query);
 		for (Object[] row : data) {
 			for (Object obj : row) {
@@ -233,6 +234,18 @@ public class ValidationUtil {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Searches for a value in results against a query. Returns false if found
+	 * 
+	 * @param query
+	 * @param value
+	 * @return
+	 * @throws SQLException
+	 */
+	public static boolean validateNotInQuery(String query, String value) throws SQLException {
+		return !validateInQuery(query, value);
 	}
 
 	/**
@@ -414,8 +427,10 @@ public class ValidationUtil {
 			return ValidationUtil.validateRange(expectedValue, valueDouble);
 		case REGEX_STRING:
 			return ValidationUtil.validateRegex(expectedValue, actualValue);
-		case QUERY_STRING:
-			return ValidationUtil.validateQuery(expectedValue, actualValue);
+		case INQUERY_STRING:
+			return ValidationUtil.validateInQuery(expectedValue, actualValue);
+		case NOTINQUERY_STRING:
+			return ValidationUtil.validateNotInQuery(expectedValue, actualValue);
 		case LIST_STRING:
 			return ValidationUtil.validateList(expectedValue, actualValue);
 		case NOTNULL_STRING:

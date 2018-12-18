@@ -209,15 +209,15 @@ public class ValidationUtilTest extends TestUtil {
 
 	/**
 	 * Test method for
-	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateQuery(java.lang.String, java.lang.String)}.
+	 * {@link com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil#validateInQuery(java.lang.String, java.lang.String)}.
 	 * 
 	 * @throws SQLException
 	 */
 	@Test
 	public void testValidateQuery() throws SQLException {
 		String query = "select system_id from users where username = 'daemon'";
-		assertTrue(ValidationUtil.validateQuery(query, "daemon"));
-		assertFalse(ValidationUtil.validateQuery(query, null));
+		assertTrue(ValidationUtil.validateInQuery(query, "daemon"));
+		assertFalse(ValidationUtil.validateInQuery(query, null));
 	}
 
 	/**
