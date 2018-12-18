@@ -97,6 +97,10 @@ public class Location extends BaseEntity {
 		return getName();
 	}
 
+	public String getFullLocationName() {
+		return getDescription() + "(" + getName() + ")";
+	}
+
 	/**
 	 * @param name the name to set
 	 */

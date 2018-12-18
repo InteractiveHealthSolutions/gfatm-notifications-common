@@ -78,8 +78,8 @@ public class SearchService {
 	}
 
 	/**
-	 * Detects the right object from entity (Patient, Location or User) and returns
-	 * its primary contact
+	 * Detects right object from entity (Patient, Location or User) and returns its
+	 * primary contact
 	 * 
 	 * @param entity
 	 * @return
@@ -94,6 +94,24 @@ public class SearchService {
 			contact = ((User) entity).getPrimaryContact();
 		}
 		return contact;
+	}
+
+	/**
+	 * Detects right object from entity and returns its known name
+	 * 
+	 * @param entity
+	 * @return
+	 */
+	public String getNameFromEntity(BaseEntity entity) {
+		String name = null;
+		if (entity instanceof Patient) {
+			name = ((Patient) entity).getFullName();
+		} else if (entity instanceof Location) {
+			name = ((Location) entity).getFullLocationName();
+		} else if (entity instanceof User) {
+			name = ((User) entity).getUsername();
+		}
+		return name;
 	}
 
 	/**
@@ -120,6 +138,31 @@ public class SearchService {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Search and return desired value of a variable in encounter. If the variable
+	 * is an entity, then the name of that entity is returned. Otherwise respective
+	 * value of matching observation is returned
+	 * 
+	 * @param encounter
+	 * @param variable
+	 * @return
+	 */
+	public String searchValueFromEncounter(Encounter encounter, String variable) {
+		// First, check if the variable is an entity
+		BaseEntity entity = searchEntityFromEncounter(encounter, variable);
+		// If not, then return value of respective observation
+		if (entity == null) {
+			for (Observation obs : encounter.getObservations()) {
+				if (ValidationUtil.variableMatchesWithConcept(variable, obs)) {
+					return obs.getValue().toString();
+				}
+			}
+			return null;
+		} else {
+			return getNameFromEntity(entity);
+		}
 	}
 
 	/**

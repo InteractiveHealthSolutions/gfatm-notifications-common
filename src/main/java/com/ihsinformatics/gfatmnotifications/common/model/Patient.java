@@ -23,6 +23,7 @@ public class Patient extends BaseEntity {
 	private static final long serialVersionUID = -2752992319218350228L;
 	private Integer personId;
 	private String patientIdentifier;
+	private String patientIdentifierLocation;
 	private String givenName;
 	private String lastName;
 	private String gender;
@@ -610,6 +611,20 @@ public class Patient extends BaseEntity {
 	 */
 	public void setPatientIdentifier(String patientIdentifier) {
 		this.patientIdentifier = patientIdentifier;
+	}
+
+	/**
+	 * @return the patientIdentifierLocation
+	 */
+	public String getPatientIdentifierLocation() {
+		return patientIdentifierLocation;
+	}
+
+	/**
+	 * @param patientIdentifierLocation the patientIdentifierLocation to set
+	 */
+	public void setPatientIdentifierLocation(String patientIdentifierLocation) {
+		this.patientIdentifierLocation = patientIdentifierLocation;
 	}
 
 	/**

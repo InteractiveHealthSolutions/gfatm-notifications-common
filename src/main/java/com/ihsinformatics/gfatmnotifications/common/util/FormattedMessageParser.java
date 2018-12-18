@@ -13,9 +13,11 @@ package com.ihsinformatics.gfatmnotifications.common.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,8 +32,10 @@ import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
+import com.ihsinformatics.gfatmnotifications.common.service.SearchService;
 import com.ihsinformatics.util.ClassLoaderUtil;
 import com.ihsinformatics.util.CommandType;
+import com.ihsinformatics.util.DateTimeUtil;
 
 /**
  * @author owais.hussain@ihsinformatics.com
@@ -66,65 +70,34 @@ public class FormattedMessageParser {
 		for (String token : tokens) {
 			// Detect the entity.property tokens
 			if (isEntityValuePair(token)) {
-				String[] pair = token.split("\\.", 2);
-				String entityName = pair[0];
-				String propertyName = pair[1];
-				String values = "";
-				String resultPropertyValue = "";
-				// Match the key with objects passed
-				try {
-					// Precaution! Turn first character into capital
-					entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
-							+ entityName.substring(1, entityName.length());
-					Object object = getMatchingClassObject(entityName, objects);
-					try {
-						entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
-								+ entityName.substring(1, entityName.length());
-						object = getMatchingClassObject(entityName, objects);
-						resultPropertyValue = getPropertyValue(object, propertyName).toString();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					if ("".equals(resultPropertyValue)) {
-						values = getObsValues(object, propertyName);
-
-					} else {
-						values = resultPropertyValue;
-					}
-					output.append(values);
-					// output.append(getPropertyValue(object, propertyName));
-				} catch (Exception e) {
-					// TODO : if any entity is not available then throw Exception. Discuss
-					e.printStackTrace();
-				}
-			} else if (isEntityValuePairWithCondition(token)) {
 				String[] pair = token.split("\\.");
 				String entityName = pair[0];
 				String propertyName = pair[1];
-				String condition = pair[2];
 				String values = "";
 				String resultPropertyVal = "";
 				Object object = null;
 				try {
+					// Precaution! Turn first character into capital
 					entityName = String.valueOf(entityName.charAt(0)).toUpperCase()
 							+ entityName.substring(1, entityName.length());
 					object = getMatchingClassObject(entityName, objects);
-					resultPropertyVal = getPropertyValue(object, propertyName).toString();
+					// Handle Encounter differently
+					if (object.equals(Encounter.class)) {
+						SearchService searchService = new SearchService(Context.getOpenmrsDb());
+						resultPropertyVal = searchService.searchValueFromEncounter((Encounter) object, propertyName);
+					} else {
+						resultPropertyVal = getPropertyValue(object, propertyName).toString();
+					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				if (resultPropertyVal.isEmpty() || resultPropertyVal.equals("") || resultPropertyVal == null) {
-					values = getObsValues(object, propertyName);
-				} else {
-					values = resultPropertyVal;
+				// Change the date to a more human readable format
+				if (resultPropertyVal.matches(DateTimeUtil.SQL_DATE)
+						|| resultPropertyVal.matches(DateTimeUtil.SQL_DATETIME)) {
+					resultPropertyVal = getReadableDate(DateTimeUtil.fromSqlDateString(resultPropertyVal));
 				}
-
-				if (condition.equals("day") && !values.equals("")) {
-					output.append(getDayName(values));
-				} else {
-					output.append(values);
-				}
-
+				values = resultPropertyVal;
+				output.append(values);
 			} else {
 				output.append(token);
 			}
@@ -134,20 +107,18 @@ public class FormattedMessageParser {
 		return result;
 	}
 
-	public String getObsValues(Object object, String propertyName) {
-		if (object instanceof Encounter) {
-			List<Observation> observationList = ((Encounter) object).getObservations();
-			if (observationList != null && !observationList.isEmpty()) {
-				for (Observation observation : ((Encounter) object).getObservations()) {
-					if (ValidationUtil.variableMatchesWithConcept(propertyName, observation)) {
-						return observation.getValue().toString();
-					}
-				}
-			} else {
-				System.out.print("No observations found against this Encounter");
-			}
-		}
-		return null;
+	@SuppressWarnings("deprecation")
+	/**
+	 * Converts date (passed as string) into a more readable string
+	 * 
+	 * @param resultPropertyVal
+	 * @return
+	 */
+	public String getReadableDate(Date date) {
+		String dayName = new DateFormatSymbols().getWeekdays()[new Date().getDay() + 1];
+		String dateString = DateTimeUtil.toString(date, DateTimeUtil.STANDARD_DATE_HYPHENATED);
+		DaysInUrdu urduName = DaysInUrdu.valueOf(dayName);
+		return dateString + "(" + urduName + ")";
 	}
 
 	public String getDayName(String timestamp) {
@@ -251,10 +222,6 @@ public class FormattedMessageParser {
 	 */
 	public boolean isEntityValuePair(String token) {
 		return token.matches("^[\\w]+\\.[\\w]+$");
-	}
-
-	public boolean isEntityValuePairWithCondition(String token) {
-		return token.matches("^[\\w]+\\.[\\w]+\\.[\\w]+$");
 	}
 
 	/**

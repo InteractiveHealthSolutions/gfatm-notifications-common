@@ -261,11 +261,19 @@ public class ValidationUtil {
 	 */
 	public static boolean validateRule(Rule rule, Patient patient, Location location, Encounter encounter,
 			DatabaseUtil dbUtil) {
-		boolean conditionsValid = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
-		if (conditionsValid) {
-			conditionsValid = !validateConditions(rule.getStopConditions(), patient, location, encounter, dbUtil);
+		boolean conditions = false;
+		boolean stopConditions = true;
+		if ("".equals(rule.getConditions())) {
+			conditions = true;
+		} else {
+			conditions = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
 		}
-		return conditionsValid;
+		if ("".equals(rule.getStopConditions())) {
+			stopConditions = false;
+		} else {
+			stopConditions = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
+		}
+		return conditions && !stopConditions;
 	}
 
 	/**
@@ -280,9 +288,6 @@ public class ValidationUtil {
 	 */
 	public static boolean validateConditions(String conditions, Patient patient, Location location, Encounter encounter,
 			DatabaseUtil dbUtil) {
-		if ("".equals(conditions)) {
-			return true;
-		}
 		// Check if the encounter requires to be retrieved
 		String orPattern = "(.)+OR(.)+";
 		String andPattern = "(.)+AND(.)+";

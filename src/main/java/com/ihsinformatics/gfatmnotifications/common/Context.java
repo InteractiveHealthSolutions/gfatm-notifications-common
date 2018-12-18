@@ -480,7 +480,7 @@ public class Context {
 	public static void loadPatients(DatabaseUtil dbUtil) {
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select  pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName, p.gender as gender, p.birthdate as birthdate, p.birthdate_estimated as estimated, ");
+				"select pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName, p.gender as gender, p.birthdate as birthdate, p.birthdate_estimated as estimated, ");
 		query.append(
 				"bp.value as birthplace, ms.value as maritalStatus, pcontact.value as primaryContact, pco.value as primaryContactOwner, scontact.value as secondaryContact, sco.value as secondaryContactOwner, ");
 		query.append(
@@ -490,7 +490,7 @@ public class Context {
 		query.append(
 				"pat.value as patientType, pt.creator as creator, pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, ");
 		query.append(
-				"pi.identifier as patientIdentifier, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
+				"pi.identifier as patientIdentifier, pi.location_id as patientIdentifierLocation, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
 		query.append(
 				"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
 		query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided = 0 ");
