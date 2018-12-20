@@ -28,6 +28,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.util.NotificationType;
+import com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil;
 
 /**
  * @author owais.hussain@ihsinformatics.com
@@ -154,7 +155,13 @@ public class RuleBook {
 		List<Rule> smsRules = new ArrayList<>();
 		for (Rule rule : rules) {
 			if (rule.getType() == NotificationType.SMS) {
-				smsRules.add(rule);
+				try {
+					ValidationUtil.validateRuleSyntax(rule);
+					smsRules.add(rule);					
+				} catch(Exception e) {
+					e.printStackTrace();
+					System.exit(-1);
+				}
 			}
 		}
 		return smsRules;

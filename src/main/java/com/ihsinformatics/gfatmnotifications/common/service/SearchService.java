@@ -11,6 +11,7 @@ Interactive Health Solutions, hereby disclaims all copyright interest in this pr
 */
 package com.ihsinformatics.gfatmnotifications.common.service;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,7 +23,6 @@ import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.Relationship;
-import com.ihsinformatics.gfatmnotifications.common.model.Rule;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil;
 import com.ihsinformatics.util.DatabaseUtil;
@@ -45,14 +45,13 @@ public class SearchService {
 	 * 
 	 * @param patient
 	 * @param encounter
-	 * @param rule
+	 * @param sendTo
 	 * @return
 	 */
-	public String searchContactFromRule(Patient patient, Encounter encounter, Rule rule) {
-		String exceptionMessage = rule.getSendTo()
-				+ " is not in correct search format. Please specify it like: Search Encounter.referral_site, Search Relationship.index, Search Relationship.doctor, etc.";
-		if (rule.getSendTo().toLowerCase().startsWith("search")) {
-			String[] parts = rule.getSendTo().split(" ");
+	public String searchContactFromEntityValuePair(Patient patient, Encounter encounter, String sendTo) {
+		String exceptionMessage = sendTo + " is not in correct search format. Please specify it like: , etc.";
+		if (sendTo.toLowerCase().startsWith("search")) {
+			String[] parts = sendTo.split(" ", 2);
 			if (parts.length < 2) {
 				throw new IllegalArgumentException(exceptionMessage);
 			}
@@ -125,6 +124,9 @@ public class SearchService {
 	 * @return
 	 */
 	public BaseEntity searchEntityFromEncounter(Encounter encounter, String variable) {
+		if (encounter.getObservations() == null) {
+			return null;
+		}
 		for (Observation obs : encounter.getObservations()) {
 			if (ValidationUtil.variableMatchesWithConcept(variable, obs)) {
 				String value = obs.getValue().toString();
@@ -148,21 +150,26 @@ public class SearchService {
 	 * @param encounter
 	 * @param variable
 	 * @return
+	 * @throws InvocationTargetException 
+	 * @throws NoSuchMethodException 
+	 * @throws IllegalAccessException 
+	 * @throws NoSuchFieldException 
 	 */
-	public String searchValueFromEncounter(Encounter encounter, String variable) {
+	public String searchValueFromEncounter(Encounter encounter, String variable) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 		// First, check if the variable is an entity
 		BaseEntity entity = searchEntityFromEncounter(encounter, variable);
 		// If not, then return value of respective observation
-		if (entity == null) {
+		if (entity != null) {
+			return getNameFromEntity(entity);
+		} else if (encounter.getObservations() != null) {
 			for (Observation obs : encounter.getObservations()) {
 				if (ValidationUtil.variableMatchesWithConcept(variable, obs)) {
 					return obs.getValue().toString();
 				}
 			}
-			return null;
-		} else {
-			return getNameFromEntity(entity);
 		}
+		// Last resort, search in properties
+		return ValidationUtil.getEntityPropertyValue(encounter, variable);
 	}
 
 	/**

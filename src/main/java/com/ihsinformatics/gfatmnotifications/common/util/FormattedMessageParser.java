@@ -31,7 +31,6 @@ import org.joda.time.DateTime;
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
-import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.service.SearchService;
 import com.ihsinformatics.util.ClassLoaderUtil;
 import com.ihsinformatics.util.CommandType;
@@ -82,7 +81,7 @@ public class FormattedMessageParser {
 							+ entityName.substring(1, entityName.length());
 					object = getMatchingClassObject(entityName, objects);
 					// Handle Encounter differently
-					if (object.equals(Encounter.class)) {
+					if (object instanceof Encounter) {
 						SearchService searchService = new SearchService(Context.getOpenmrsDb());
 						resultPropertyVal = searchService.searchValueFromEncounter((Encounter) object, propertyName);
 					} else {

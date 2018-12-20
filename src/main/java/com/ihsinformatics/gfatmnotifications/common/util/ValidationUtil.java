@@ -16,7 +16,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.InvalidPropertiesFormatException;
+import java.util.List;
 import java.util.MissingFormatArgumentException;
 import java.util.Objects;
 import java.util.logging.Logger;
@@ -26,7 +28,6 @@ import java.util.regex.PatternSyntaxException;
 import org.json.JSONObject;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
-import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
@@ -268,12 +269,15 @@ public class ValidationUtil {
 		} else {
 			conditions = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
 		}
+		if (!conditions) {
+			return false;
+		}
 		if ("".equals(rule.getStopConditions())) {
 			stopConditions = false;
 		} else {
 			stopConditions = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
 		}
-		return conditions && !stopConditions;
+		return !stopConditions;
 	}
 
 	/**
@@ -463,9 +467,6 @@ public class ValidationUtil {
 	 */
 	public static String getEntityPropertyValue(Object object, String property)
 			throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-		if (!(object instanceof BaseEntity)) {
-			throw new NoSuchFieldException("The object is not an instance of BaseEntity");
-		}
 		String actualValue;
 		// Is it a field or method?
 		if (property.matches("get[A-Z](.)+")) {
@@ -504,5 +505,59 @@ public class ValidationUtil {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * This method reads all fields from given rule and checks if the syntax is
+	 * valid
+	 * 
+	 * @param rule
+	 * @return
+	 */
+	public static void validateRuleSyntax(Rule rule) {
+		// Encounter type should exist
+		if (Context.getEncounterTypeId(rule.getEncounterType()) == null) {
+			throw new IllegalArgumentException("Encounter type could not be found for rule: " + rule.toString());
+		}
+
+		// Send to patient, facility, user, supervisor, location, or search
+		// Entity.property
+		List<String> possibilities = Arrays.asList("patient", "facility", "location", "supervisor", "user",
+				"search encounter.", "search patient.", "search relationship.");
+		boolean flag = false;
+		for (String possibility : possibilities) {
+			if (rule.getSendTo().toLowerCase().startsWith(possibility)) {
+				flag = true;
+				break;
+			}
+		}
+		if (!flag) {
+			throw new IllegalArgumentException(
+					"Value of 'Send to' does not follow the standard for rule: " + rule.toString());
+		}
+
+		// Schedule date should point to a date field
+		if (rule.getScheduleDate() == null) {
+			throw new IllegalArgumentException("Schedule Date is not provided for rule: " + rule.toString());
+		}
+
+		// Only hours, days and months are allowed here
+		if (!rule.getPlusMinusUnit().toLowerCase().matches("hours|days|months")) {
+			throw new IllegalArgumentException(
+					"Value provided as unit of plus minus is not permitted in rule: " + rule.toString());
+		}
+
+		// Message code should exist
+		if (Objects.equals(rule.getMessageCode(), "")) {
+			throw new IllegalArgumentException("Message code not provided for rule: " + rule.toString());
+		}
+
+		// Fetch duration should either be blank or contain a number followed by unit
+		if (!(rule.getFetchDuration().equals("")
+				|| rule.getFetchDuration().toLowerCase().matches("^[0-9]+ (hours|days|months)"))) {
+			throw new IllegalArgumentException(
+					"Fetch duration must either be empty or in form like 2 hours, 3 days, 1 months, etc. Error found in rule: "
+							+ rule.toString());
+		}
 	}
 }

@@ -17,7 +17,6 @@ import java.util.Date;
 import org.joda.time.DateTime;
 
 import com.ihsinformatics.gfatmnotifications.common.util.NotificationType;
-import com.ihsinformatics.util.DateTimeUtil;
 
 /**
  * @author owais.hussain@ihsinformatics.com
@@ -137,9 +136,6 @@ public class Rule {
 		this.sendTo = sendTo;
 	}
 
-	/**
-	 * @return the scheduleDate
-	 */
 	public String getScheduleDate() {
 		return scheduleDate;
 	}
@@ -219,7 +215,6 @@ public class Rule {
 		if (fetchDuration == null || fetchDuration.isEmpty()) {
 			return null;
 		}
-
 		Date toDay = new Date();
 		DateTime referenceDate = new DateTime();
 		DateTime returnDate = null;
@@ -229,24 +224,15 @@ public class Rule {
 		c.setTime(toDay);
 		if (values[1].equalsIgnoreCase("months")) {
 			returnDate = referenceDate.minusMonths(duration).toDateTime();
-			// LocalDateTime.from(toDay.toInstant()).minusMonths(duration);
 			c.add(Calendar.MONTH, duration);
 		} else if (values[1].equalsIgnoreCase("days")) {
 			c.add(Calendar.DATE, duration);
 			returnDate = referenceDate.minusDays(duration).toDateTime();
+		} else if (values[1].equalsIgnoreCase("hours")) {
+			c.add(Calendar.HOUR, duration);
+			returnDate = referenceDate.minusHours(duration).toDateTime();
 		}
-		/*
-		 * else if (values[1].equalsIgnoreCase("years")) {
-		 * 
-		 * }
-		 */
-		// DateTimeUtil.
-
 		return returnDate;
-	}
-
-	public Date getScheduleDateTime() {
-		return DateTimeUtil.fromSqlDateString(scheduleDate);
 	}
 
 	/**

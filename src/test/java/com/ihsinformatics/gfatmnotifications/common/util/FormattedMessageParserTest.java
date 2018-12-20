@@ -18,6 +18,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,6 +28,7 @@ import org.junit.Test;
 
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
+import com.ihsinformatics.gfatmnotifications.common.model.Observation;
 import com.ihsinformatics.gfatmnotifications.common.model.Patient;
 import com.ihsinformatics.gfatmnotifications.common.model.User;
 import com.ihsinformatics.gfatmnotifications.common.service.TestUtil;
@@ -73,8 +75,11 @@ public class FormattedMessageParserTest extends TestUtil {
 		testUser.setUserRole("Tester");
 
 		testLocation = new Location();
+		testLocation.setName("IHS-KHI");
 
 		testEncounter = new Encounter();
+		testEncounter.setLocation(testLocation.getName());
+		testEncounter.setObservations(new ArrayList<Observation>());
 	}
 
 	/**

@@ -51,7 +51,7 @@ public class SearchServiceTest extends TestUtil {
 		searchRule.setSendTo("Search Relationship.Treatment Supporter");
 		Integer encounterTypeId = Context.getEncounterTypeId("FAST-Referral Form");
 		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(), encounterTypeId, true, dbUtil);
-		String contact = service.searchContactFromRule(fast, encounter, searchRule);
+		String contact = service.searchContactFromEntityValuePair(harry, encounter, searchRule.getSendTo());
 		assertNotNull(contact);
 	}
 
@@ -61,7 +61,7 @@ public class SearchServiceTest extends TestUtil {
 		searchRule.setSendTo("Search Encounter.referral_site");
 		Integer encounterTypeId = Context.getEncounterTypeId("FAST-Referral Form");
 		Encounter encounter = Context.getEncounterByPatientIdentifier(fast.getPatientIdentifier(), encounterTypeId, true, dbUtil);
-		String contact = service.searchContactFromRule(fast, encounter, searchRule);
+		String contact = service.searchContactFromEntityValuePair(fast, encounter, searchRule.getSendTo());
 		assertNotNull(contact);
 	}
 
