@@ -15,18 +15,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.text.DateFormatSymbols;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.joda.time.DateTime;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.BaseEntity;
@@ -87,7 +83,9 @@ public class FormattedMessageParser {
 					} else {
 						resultPropertyVal = getPropertyValue(object, propertyName).toString();
 					}
-				} catch (Exception e) {
+				} catch (NullPointerException e) {
+					resultPropertyVal = "";
+				} catch (ReflectiveOperationException e) {
 					e.printStackTrace();
 				}
 				// Change the date to a more human readable format
@@ -117,20 +115,7 @@ public class FormattedMessageParser {
 		String dayName = new DateFormatSymbols().getWeekdays()[new Date().getDay() + 1];
 		String dateString = DateTimeUtil.toString(date, DateTimeUtil.STANDARD_DATE_HYPHENATED);
 		DaysInUrdu urduName = DaysInUrdu.valueOf(dayName);
-		return dateString + "(" + urduName + ")";
-	}
-
-	public String getDayName(String timestamp) {
-		java.util.Date parsedDate = null;
-		try {
-			parsedDate = new SimpleDateFormat("yyyy-MM-dd").parse(timestamp);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		DateTime date = new DateTime(parsedDate.getTime());
-		System.out.println(
-				"Week Days :" + DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()));
-		return DaysInUrdu.valueOf(date.dayOfWeek().getAsText(Locale.getDefault()).toUpperCase()).toString();
+		return dateString + ", " + dayName + "(" + urduName + ")";
 	}
 
 	/**
@@ -192,7 +177,7 @@ public class FormattedMessageParser {
 	 * @throws SecurityException
 	 * @throws IllegalArgumentException
 	 */
-	public Object getPropertyValue(Object object, String fieldOrMethod) throws ReflectiveOperationException {
+	public Object getPropertyValue(Object object, String fieldOrMethod) throws ReflectiveOperationException, NullPointerException {
 		Object value = "";
 		try {
 			Field field = object.getClass().getDeclaredField(fieldOrMethod);
@@ -206,7 +191,7 @@ public class FormattedMessageParser {
 			Method method = object.getClass().getDeclaredMethod(fieldOrMethod, params);
 			boolean accessible = method.isAccessible();
 			method.setAccessible(true);
-			value = method.invoke(object, new Object[] {});
+			value = method.invoke(object);
 			method.setAccessible(accessible);
 		}
 		return value;

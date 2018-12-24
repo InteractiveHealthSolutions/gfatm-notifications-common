@@ -106,11 +106,11 @@ public class Context {
 			log.severe("Unable to read properties file.");
 			System.exit(-1);
 		}
-		log.info("Loading data...");
 		createOpenmrsDbConnection();
 		createWarehouseDbConnection();
 		DateTime start = new DateTime();
 		if (initMetadata) {
+			log.info("Loading metadata...");
 			if (encounterTypes == null) {
 				loadEncounterTypes(Context.getOpenmrsDb());
 			}
@@ -125,9 +125,11 @@ public class Context {
 			}
 		}
 		if (initPatientData && patients == null) {
+			log.info("Loading patient data...");
 			loadPatients(Context.getOpenmrsDb());
 		}
 		if (initRuleBook && ruleBook == null) {
+			log.info("Loading rule book...");
 			loadRuleBook();
 			log.info("It took me: " + new DateTime().minus(start.getMillis()).getMillis()
 					+ " milliseconds to load data and rules.");
@@ -437,9 +439,9 @@ public class Context {
 		setUsers(new ArrayList<User>());
 		StringBuilder query = new StringBuilder();
 		query.append(
-				"select u.user_id as userId, u.person_id as personId, u.system_id as systemId, u.username, pn.given_name as givenName, pn.family_name as lastName, p.gender, pcontact.value as primaryContact, scontact.value as secondaryContact, hd.value as healthDistrict, hc.value as healthCenter, ");
+				"select u.user_id as userId, u.person_id as personId, u.system_id as systemId, u.username, pn.given_name as givenName, pn.family_name as lastName, p.gender, pcontact.value as primaryContact, hd.value as healthDistrict, hc.value as healthCenter, ");
 		query.append(
-				"edu.value as educationLevel, emp.value as employmentStatus, occu.value as occupation, lang.value as motherTongue, nic.value as nationalId, pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, inter.value_reference as intervention, u.date_created as dateCreated, u.uuid,ur.role from users as u ");
+				"lang.value as motherTongue, pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, inter.value_reference as intervention, u.date_created as dateCreated, u.uuid,ur.role from users as u ");
 		query.append("inner join user_role as ur on ur.user_id = u.user_id ");
 		query.append("inner join person as p on p.person_id = u.person_id ");
 		query.append("inner join person_name as pn on pn.person_id = p.person_id ");
@@ -453,21 +455,10 @@ public class Context {
 		query.append(
 				"left outer join person_attribute as pcontact on pcontact.person_id = p.person_id and pcontact.person_attribute_type_id = 8 and pcontact.voided = 0 ");
 		query.append(
-				"left outer join person_attribute as scontact on scontact.person_id = p.person_id and scontact.person_attribute_type_id = 12 and scontact.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as edu on edu.person_id = p.person_id and edu.person_attribute_type_id = 15 and edu.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as emp on emp.person_id = p.person_id and emp.person_attribute_type_id = 16 and emp.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as occu on occu.person_id = p.person_id and occu.person_attribute_type_id = 17 and occu.voided = 0 ");
-		query.append(
 				"left outer join person_attribute as lang on lang.person_id = p.person_id and lang.person_attribute_type_id = 18 and lang.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as nic on nic.person_id = p.person_id and nic.person_attribute_type_id = 20 and nic.voided = 0 ");
 		query.append(
 				"left outer join person_address as pa on pa.person_id = p.person_id and pa.voided = 0 and pa.preferred = 1 ");
 		query.append("where u.retired = 0");
-
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<User>>() {
 		}.getType();
@@ -482,33 +473,17 @@ public class Context {
 		query.append(
 				"select pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName, p.gender as gender, p.birthdate as birthdate, p.birthdate_estimated as estimated, ");
 		query.append(
-				"bp.value as birthplace, ms.value as maritalStatus, pcontact.value as primaryContact, pco.value as primaryContactOwner, scontact.value as secondaryContact, sco.value as secondaryContactOwner, ");
+				"bp.value as birthplace, ms.value as maritalStatus, pcontact.value as primaryContact, hd.value as healthDistrict, hc.value as healthCenter, lang.value as motherTongue, nic.value as nationalID, oin.value as otherIdentificationNumber, tg.value as transgender, pat.value as patientType, pt.creator as creator, pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, pi.identifier as patientIdentifier, pi.location_id as patientIdentifierLocation, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
 		query.append(
-				"hd.value as healthDistrict, hc.value as healthCenter, ethn.value as ethnicity, edu.value as educationLevel, emp.value as employmentStatus, occu.value as occupation, lang.value as motherTongue, ");
-		query.append(
-				"nic.value as nationalID, cnicO.value as nationalIDOwner, gn.value as guardianName, ts.value as treatmentSupporter, oin.value as otherIdentificationNumber, tg.value as transgender, ");
-		query.append(
-				"pat.value as patientType, pt.creator as creator, pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, ");
-		query.append(
-				"pi.identifier as patientIdentifier, pi.location_id as patientIdentifierLocation, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
-		query.append(
-				"inner join patient_identifier pi on pi.patient_id =pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
-		query.append("inner join person as p on p.person_id = pi.patient_id  and p.voided = 0 ");
-		query.append("inner join person_name as pn on pn.person_id = p.person_id  and pn.voided = 0 ");
+				"inner join patient_identifier pi on pi.patient_id = pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
+		query.append("inner join person as p on p.person_id = pi.patient_id and p.voided = 0 ");
+		query.append("inner join person_name as pn on pn.person_id = p.person_id and pn.preferred = 1 and pn.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as hd on hd.person_id = p.person_id and hd.person_attribute_type_id = 6 and hd.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as hc on hc.person_id = p.person_id and hc.person_attribute_type_id = 7 and hc.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as pcontact on pcontact.person_id = p.person_id and pcontact.person_attribute_type_id = 8 and pcontact.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as scontact on scontact.person_id = p.person_id and scontact.person_attribute_type_id = 12 and scontact.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as edu on edu.person_id = p.person_id and edu.person_attribute_type_id = 15 and edu.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as emp on emp.person_id = p.person_id and emp.person_attribute_type_id = 16 and emp.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as occu on occu.person_id = p.person_id and occu.person_attribute_type_id = 17 and occu.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as lang on lang.person_id = p.person_id and lang.person_attribute_type_id = 18 and lang.voided = 0 ");
 		query.append(
@@ -517,18 +492,6 @@ public class Context {
 				"left outer join person_attribute as bp on bp.person_id = p.person_id and bp.person_attribute_type_id = 2 and bp.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as ms on ms.person_id = p.person_id and ms.person_attribute_type_id = 5 and ms.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as pco on pco.person_id = p.person_id and pco.person_attribute_type_id = 11 and pco.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as sco on sco.person_id = p.person_id and sco.person_attribute_type_id = 13 and sco.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as ethn on ethn.person_id = p.person_id and ethn.person_attribute_type_id = 14 and ethn.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as cnicO on cnicO.person_id = p.person_id and cnicO.person_attribute_type_id = 21 and cnicO.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as gn on gn.person_id = p.person_id and gn.person_attribute_type_id = 22 and gn.voided = 0 ");
-		query.append(
-				"left outer join person_attribute as ts on ts.person_id = p.person_id and ts.person_attribute_type_id = 25 and ts.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as oin on oin.person_id = p.person_id and oin.person_attribute_type_id = 26 and oin.voided = 0 ");
 		query.append(
@@ -542,7 +505,7 @@ public class Context {
 		query.append("where pt.voided = 0 ");
 		// Exclude patients against whom no encounter was filled in last 100 days
 		query.append(
-				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and datediff(current_date(), encounter_datetime) < 100) ");
+				"and pt.patient_id in (select distinct patient_id from encounter where voided = 0 and datediff(current_date(), encounter_datetime) < 90) ");
 		// Exclude patients where last encounter filled was End of follow-up
 		query.append(
 				"and (select ifnull(encounter_type, 0) from encounter where patient_id = pt.patient_id and voided = 0 order by encounter_datetime desc limit 1) <> 190 ");
@@ -605,13 +568,8 @@ public class Context {
 		filter.append("timestamp('" + sqlFrom + "') ");
 		filter.append("and ");
 		filter.append("timestamp('" + sqlTo + "') ");
-		// commited 24hours filter as per discussion
-		/*
-		 * filter.append("and "); filter.
-		 * append("timestampdiff(HOUR, e.date_created, e.encounter_datetime) <= 24 ");
-		 */
 		if (type != null) {
-			filter.append(" and e.encounter_type=" + type);
+			filter.append(" and e.encounter_type = " + type);
 		}
 		StringBuilder query = new StringBuilder();
 		query.append(
@@ -624,14 +582,13 @@ public class Context {
 				"inner join person_attribute as pc on pc.person_id = p.patient_id and pc.person_attribute_type_id = 8 and pc.voided = 0 ");
 		query.append("left outer join location as l on l.location_id = e.location_id ");
 		query.append(
-				"left outer join location_attribute as lc on lc.location_id = l.location_id and lc.attribute_type_id = 2 ");
+				"left outer join location_attribute as lc on lc.location_id = l.location_id and lc.attribute_type_id = 2 and lc.voided = 0 ");
 		query.append("left outer join encounter_provider as ep on ep.encounter_id = e.encounter_id ");
 		query.append("left outer join provider as pr on pr.provider_id = ep.provider_id ");
 		query.append(
 				"left outer join person_attribute as upc on upc.person_id = pr.person_id and upc.person_attribute_type_id = 8 ");
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append(filter);
-
 		// Convert query into json sring
 		System.out.println(query.toString());
 		String jsonString = queryToJson(query.toString(), dbUtil);
@@ -684,7 +641,7 @@ public class Context {
 				"left outer join person_attribute as upc on upc.person_id = pr.person_id and upc.person_attribute_type_id = 8 ");
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append("where e.patient_id = (select patient_id from patient_identifier where identifier = '"
-				+ patientIdentifier + "')");
+				+ patientIdentifier + "' and voided = 0 limit 1)");
 		query.append(
 				"and e.encounter_type = " + encounterTypeId + " and e.voided = 0 order by e.encounter_datetime desc");
 		String jsonString = queryToJson(query.toString(), dbUtil);
@@ -716,7 +673,7 @@ public class Context {
 		query.append(
 				"inner join concept_name as c on c.concept_id = o.concept_id and c.locale = 'en' and c.concept_name_type = 'SHORT' ");
 		query.append(
-				"inner join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and cn.concept_name_type = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
+				"inner join concept_name as cn on cn.concept_id = c.concept_id and cn.locale = 'en' and ifnull(cn.concept_name_type, 'FULLY_SPECIFIED') = 'FULLY_SPECIFIED' and cn.locale_preferred = 1 and cn.voided = 0 ");
 		query.append(
 				"left outer join concept_name as vn on vn.concept_id = o.value_coded and vn.locale = 'en' and vn.concept_name_type = 'FULLY_SPECIFIED' and vn.locale_preferred = 1 and vn.voided = 0 ");
 		query.append("where o.voided = 0 and o.encounter_id = " + encounter.getEncounterId());

@@ -239,6 +239,9 @@ public class Patient extends BaseEntity {
 	 * @return the primaryContact
 	 */
 	public String getPrimaryContact() {
+		if (primaryContact != null) {
+			primaryContact = primaryContact.replace("-", "");
+		}
 		return primaryContact;
 	}
 

@@ -209,6 +209,9 @@ public class ValidationUtil {
 			throw new InvalidPropertiesFormatException(
 					"Invalid format provided for validation list. Must be a comma-separated list of alpha-numeric values (white space, hypen and underscore allowed).");
 		}
+		if (value == null) {
+			return false;
+		}
 		String[] values = list.split(",");
 		for (int i = 0; i < values.length; i++) {
 			if (value.trim().equalsIgnoreCase(values[i].trim()))
@@ -275,7 +278,7 @@ public class ValidationUtil {
 		if ("".equals(rule.getStopConditions())) {
 			stopConditions = false;
 		} else {
-			stopConditions = validateConditions(rule.getConditions(), patient, location, encounter, dbUtil);
+			stopConditions = validateConditions(rule.getStopConditions(), patient, location, encounter, dbUtil);
 		}
 		return !stopConditions;
 	}
@@ -379,39 +382,32 @@ public class ValidationUtil {
 		}
 		String actualValue = null;
 		// In case of Encounter, search through observations
-		if (entity.equalsIgnoreCase("encounter")) {
-			if (encounter.getObservations() == null) {
-				return false;
-			}
-			for (Observation obs : encounter.getObservations()) {
-				// Search for the observation's concept name matching the variable name
-				if (variableMatchesWithConcept(property, obs)) {
-					if (obs.getValueCoded() == null) {
-						actualValue = obs.getValue().toString();
-					} else {
-						actualValue = obs.getValueCoded().toString();
-					}
-					try {
+		try {
+			if (entity.equalsIgnoreCase("encounter")) {
+				if (encounter.getObservations() == null) {
+					return false;
+				}
+				for (Observation obs : encounter.getObservations()) {
+					// Search for the observation's concept name matching the variable name
+					if (variableMatchesWithConcept(property, obs)) {
+						actualValue = obs.getValueCoded() == null ? obs.getValue().toString()
+								: obs.getValueCoded().toString();
 						return validateValue(validationType, expectedValue, actualValue);
-					} catch (InvalidPropertiesFormatException | SQLException e) {
-						log.warning(e.getMessage());
-						return false;
 					}
 				}
 			}
-		}
-		try {
 			// In case of Patient or Location, search for the defined property
-			if (entity.equals("Patient")) {
+			else if (entity.equals("Patient")) {
 				actualValue = getEntityPropertyValue(patient, property);
 			} else if (entity.equals("Location")) {
 				actualValue = getEntityPropertyValue(location, property);
 			}
 			return validateValue(validationType, expectedValue, actualValue);
-		} catch (Exception e) {
+		} catch (InvalidPropertiesFormatException | NoSuchFieldException | IllegalAccessException
+				| NoSuchMethodException | InvocationTargetException | SQLException e) {
 			log.warning(e.getMessage());
+			return false;
 		}
-		return false;
 	}
 
 	/**
@@ -428,9 +424,9 @@ public class ValidationUtil {
 			throws InvalidPropertiesFormatException, SQLException {
 		switch (validationType) {
 		case EQUALS_STRING:
-			return actualValue.equalsIgnoreCase(expectedValue);
+			return expectedValue.equalsIgnoreCase(actualValue);
 		case NOTEQUALS_STRING:
-			return !actualValue.equalsIgnoreCase(expectedValue);
+			return !expectedValue.equalsIgnoreCase(actualValue);
 		case RANGE_STRING:
 			Double valueDouble = Double.parseDouble(actualValue);
 			return ValidationUtil.validateRange(expectedValue, valueDouble);
@@ -447,7 +443,7 @@ public class ValidationUtil {
 		case EXISTS_STRING:
 			return actualValue != null;
 		default:
-			return false;
+			throw new InvalidPropertiesFormatException("Unknown validation type: " + validationType);
 		}
 	}
 

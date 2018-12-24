@@ -202,7 +202,17 @@ public class Encounter {
 	 */
 	@Override
 	public String toString() {
+		StringBuilder obsStr = new StringBuilder();
+		if (observations != null) {
+			obsStr.append("\r\n");
+			for (Observation observation : observations) {
+				obsStr.append(observation.getConceptShortName());
+				obsStr.append("=");
+				obsStr.append(observation.getValue());
+				obsStr.append("\r\n");
+			}
+		}
 		return encounterId + ", " + encounterType + ", " + encounterDatetime + ", " + patientId + ", " + identifier
-				+ ", " + patientName + ", " + encounterLocation + ", " + provider + ", " + username + ", " + uuid;
+				+ ", " + patientName + ", " + encounterLocation + ", " + provider + ", " + username + ", " + uuid + obsStr.toString();
 	}
 }
