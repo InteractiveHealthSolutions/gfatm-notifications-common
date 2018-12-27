@@ -12,7 +12,8 @@ import com.ihsinformatics.gfatmnotifications.common.model.Message;
 
 public class ExcelSheetWriter {
 
-	private static String[] columns = { "EncounterType", "Message", "Contact", "PreparedOn", "SendOn", "Recipient", "Rule" };
+	private static String[] columns = { "NotificationType", "EncounterType", "Message", "Contact", "PreparedOn",
+			"SendOn", "Recipient", "Rule" };
 
 	public static void writeFile(String fileName, List<Message> messageList)
 			throws IOException, InvalidFormatException {
@@ -21,7 +22,6 @@ public class ExcelSheetWriter {
 		 * CreationHelper helps us create instances of various things like DataFormat,
 		 * Hyperlink, RichTextString etc, in a format (HSSF, XSSF) independent way
 		 */
-		CreationHelper createHelper = workbook.getCreationHelper();
 		// Create a Sheet
 		Sheet sheet = workbook.createSheet("Notifications");
 		// Create a Font for styling header cells
@@ -41,24 +41,26 @@ public class ExcelSheetWriter {
 			cell.setCellStyle(headerCellStyle);
 		}
 		// Create Cell Style for formatting Date
-		CellStyle dateCellStyle = workbook.createCellStyle();
-		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
+//		CreationHelper createHelper = workbook.getCreationHelper();
+//		CellStyle dateCellStyle = workbook.createCellStyle();
+//		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
 
 		// Create Other rows and cells with employees data
 		int rowNum = 1;
 		for (Message message : messageList) {
 			int cellNum = 0;
 			Row row = sheet.createRow(rowNum++);
+			row.createCell(cellNum++).setCellValue(message.getRule().getType().toString());
 			row.createCell(cellNum++).setCellValue(message.getEncounterType());
 			row.createCell(cellNum++).setCellValue(message.getPreparedMessage());
 			row.createCell(cellNum++).setCellValue(message.getContact());
 			row.createCell(cellNum++).setCellValue(message.getPreparedOn());
 			row.createCell(cellNum++).setCellValue(message.getSendOn());
 			row.createCell(cellNum++).setCellValue(message.getRecipient());
-			row.createCell(cellNum++).setCellValue(message.getRule().toString());
+			row.createCell(cellNum).setCellValue(message.getRule().toString());
 		}
 		// Write the output to a file
-		FileOutputStream fileOut = new FileOutputStream(fileName + ".xlsx");
+		FileOutputStream fileOut = new FileOutputStream(fileName);
 		workbook.write(fileOut);
 		fileOut.close();
 		// Closing the workbook

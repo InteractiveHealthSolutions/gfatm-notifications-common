@@ -973,35 +973,34 @@ public class Context {
 	}
 
 	public static Date calculateScheduleDate(DateTime referenceDate, Double plusMinus, String plusMinusUnit) {
-		Date returnDate = null;
+		DateTime returnDate = null;
 		if (referenceDate == null) {
 			return null;
 		}
-		if (plusMinus == null) {
+		if (plusMinus == null || plusMinus == 0D) {
 			DateTime now = new DateTime();
 			// Should send next minute
-			return referenceDate.withHourOfDay(now.getHourOfDay()).withMinuteOfHour(now.getMinuteOfHour() + 1).toDate();
-		}
-		if (plusMinusUnit.equalsIgnoreCase("hours")) {
+			returnDate = referenceDate.withHourOfDay(now.getHourOfDay()).withMinuteOfHour(now.getMinuteOfHour() + 1);
+		} else if (plusMinusUnit.equalsIgnoreCase("hours")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusHours(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.minusHours(plusMinus.intValue());
 			} else {
-				returnDate = referenceDate.plusHours(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.plusHours(plusMinus.intValue());
 			}
 		} else if (plusMinusUnit.equalsIgnoreCase("days")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusDays(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.minusDays(plusMinus.intValue());
 			} else {
-				returnDate = referenceDate.plusDays(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.plusDays(plusMinus.intValue());
 			}
 		} else if (plusMinusUnit.equalsIgnoreCase("months")) {
 			if (plusMinus < 0) {
-				returnDate = referenceDate.minusMonths(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.minusMonths(plusMinus.intValue());
 			} else {
-				returnDate = referenceDate.plusMonths(plusMinus.intValue()).toDate();
+				returnDate = referenceDate.plusMonths(plusMinus.intValue());
 			}
 		}
-		return returnDate;
+		return returnDate.toDate();
 	}
 
 	public static DateTime getReferenceDate(String variableName, Encounter encounter) {
