@@ -1,5 +1,6 @@
 package com.ihsinformatics.gfatmnotifications.common.util;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
@@ -8,6 +9,7 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.Message;
 
 public class ExcelSheetWriter {
@@ -60,7 +62,13 @@ public class ExcelSheetWriter {
 			row.createCell(cellNum).setCellValue(message.getRule().toString());
 		}
 		// Write the output to a file
-		FileOutputStream fileOut = new FileOutputStream(fileName);
+		FileOutputStream fileOut = null;
+		try {
+			fileOut = new FileOutputStream(fileName, true);
+		} catch (FileNotFoundException e) {
+			// If not found, write on home directory
+			fileOut = new FileOutputStream(Context.DEFAULT_HOME_DIRECTORY + "gfatm-notifications.xlsx", true);
+		}
 		workbook.write(fileOut);
 		fileOut.close();
 		// Closing the workbook

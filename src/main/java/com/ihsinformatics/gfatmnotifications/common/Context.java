@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
-import java.net.URL;
 import java.nio.file.DirectoryIteratorException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -56,10 +55,10 @@ import com.ihsinformatics.util.DateTimeUtil;
  */
 public class Context {
 
+	public static final String DEFAULT_HOME_DIRECTORY = System.getProperty("user.home") + System.getProperty("file.separator");
 	private static final Logger log = Logger.getLogger(Class.class.getName());
 	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
 	public static final String PROJECT_NAME = "Aao-TB-Mitao Notifications";
-	private static final String RULE_BOOK_FILE = "rules/RuleBook.xlsx";
 
 	private static Properties props;
 	private static DatabaseUtil dbOpenmrsUtil;
@@ -258,6 +257,15 @@ public class Context {
 	}
 
 	/**
+	 * Returns output file path for logging
+	 * 
+	 * @return
+	 */
+	public static String getOutputFilePath() {
+		return getProps().getProperty("output.dir", DEFAULT_HOME_DIRECTORY);
+	}
+
+	/**
 	 * @return the localDb
 	 */
 	public static DatabaseUtil getDwDb() {
@@ -327,8 +335,12 @@ public class Context {
 	 * @throws IOException
 	 */
 	public static void loadRuleBook() throws IOException {
-		URL url = ClassLoaderUtil.getResource(RULE_BOOK_FILE, Context.class);
-		File ruleBookFile = new File(url.getFile());
+		String ruleBookFilePath = getProps().getProperty("rulebook.file");
+		File ruleBookFile = new File(ruleBookFilePath);
+		// Try to read from home directory
+		if (!ruleBookFile.exists()) {
+			ruleBookFile = new File(DEFAULT_HOME_DIRECTORY + "RuleBook.xlsx");
+		}
 		if (ruleBookFile.isDirectory() || !ruleBookFile.canRead()) {
 			throw new DirectoryIteratorException(new IOException("Rule file is either a directory or inaccessible."));
 		}
@@ -477,7 +489,8 @@ public class Context {
 		query.append(
 				"inner join patient_identifier pi on pi.patient_id = pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
 		query.append("inner join person as p on p.person_id = pi.patient_id and p.voided = 0 ");
-		query.append("inner join person_name as pn on pn.person_id = p.person_id and pn.preferred = 1 and pn.voided = 0 ");
+		query.append(
+				"inner join person_name as pn on pn.person_id = p.person_id and pn.preferred = 1 and pn.voided = 0 ");
 		query.append(
 				"left outer join person_attribute as hd on hd.person_id = p.person_id and hd.person_attribute_type_id = 6 and hd.voided = 0 ");
 		query.append(
@@ -510,6 +523,7 @@ public class Context {
 		query.append(
 				"and (select ifnull(encounter_type, 0) from encounter where patient_id = pt.patient_id and voided = 0 order by encounter_datetime desc limit 1) <> 190 ");
 		query.append("and ifnull(cons.value_coded, 1065) = 1065 ");
+		log.info(query.toString());
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<List<Patient>>() {
 		}.getType();
@@ -590,7 +604,7 @@ public class Context {
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append(filter);
 		// Convert query into json sring
-		System.out.println(query.toString());
+		log.info(query.toString());
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<ArrayList<Encounter>>() {
 		}.getType();
