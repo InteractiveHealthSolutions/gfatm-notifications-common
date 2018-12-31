@@ -485,12 +485,14 @@ public class Context {
 		query.append(
 				"select pt.patient_id as personId, pn.given_name as givenName, pn.family_name as lastName, p.gender as gender, p.birthdate as birthdate, p.birthdate_estimated as estimated, ");
 		query.append(
-				"bp.value as birthplace, ms.value as maritalStatus, pcontact.value as primaryContact, hd.value as healthDistrict, hc.value as healthCenter, lang.value as motherTongue, nic.value as nationalID, oin.value as otherIdentificationNumber, tg.value as transgender, pat.value as patientType, pt.creator as creator, pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, pi.identifier as patientIdentifier, pi.location_id as patientIdentifierLocation, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
+				"bp.value as birthplace, ms.value as maritalStatus, pcontact.value as primaryContact, hd.value as healthDistrict, hc.value as healthCenter, lang.value as motherTongue, nic.value as nationalID, oin.value as otherIdentificationNumber, tg.value as transgender, pat.value as patientType, pt.creator as creator, pt.date_created as dateCreated,pa.address1, pa.address2, pa.county_district as district, pa.city_village as cityVillage, pa.country, pa.address3 as landmark, pi.identifier as patientIdentifier, pil.name as patientIdentifierLocation, pi.uuid, cons.value_coded as consent, p.dead as dead from patient pt ");
 		query.append(
 				"inner join patient_identifier pi on pi.patient_id = pt.patient_id and pi.identifier_type = 3 and pi.voided = 0 ");
 		query.append("inner join person as p on p.person_id = pi.patient_id and p.voided = 0 ");
 		query.append(
 				"inner join person_name as pn on pn.person_id = p.person_id and pn.preferred = 1 and pn.voided = 0 ");
+		query.append(
+				"left outer join location as pil on pil.location_id = pi.location_id ");
 		query.append(
 				"left outer join person_attribute as hd on hd.person_id = p.person_id and hd.person_attribute_type_id = 6 and hd.voided = 0 ");
 		query.append(
@@ -583,7 +585,7 @@ public class Context {
 		filter.append("and ");
 		filter.append("timestamp('" + sqlTo + "') ");
 		if (type != null) {
-			filter.append(" and e.encounter_type = " + type);
+			filter.append("and e.encounter_type = " + type);
 		}
 		StringBuilder query = new StringBuilder();
 		query.append(
@@ -603,7 +605,7 @@ public class Context {
 				"left outer join person_attribute as upc on upc.person_id = pr.person_id and upc.person_attribute_type_id = 8 ");
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append(filter);
-		// Convert query into json sring
+		// Convert query into json string
 		log.info(query.toString());
 		String jsonString = queryToJson(query.toString(), dbUtil);
 		Type listType = new TypeToken<ArrayList<Encounter>>() {
@@ -987,7 +989,7 @@ public class Context {
 	}
 
 	public static Date calculateScheduleDate(DateTime referenceDate, Double plusMinus, String plusMinusUnit) {
-		DateTime returnDate = null;
+		DateTime returnDate = new DateTime();
 		if (referenceDate == null) {
 			return null;
 		}
@@ -1013,6 +1015,11 @@ public class Context {
 			} else {
 				returnDate = referenceDate.plusMonths(plusMinus.intValue());
 			}
+		}
+		DateTime dayStart = returnDate.withHourOfDay(8).withMinuteOfHour(0).withSecondOfMinute(0);
+		DateTime dayEnd = returnDate.withHourOfDay(18).withMinuteOfHour(59).withSecondOfMinute(59);
+		if (returnDate.isAfter(dayEnd) && returnDate.isBefore(dayStart)) {
+			returnDate = dayStart;
 		}
 		return returnDate.toDate();
 	}

@@ -3,6 +3,7 @@ package com.ihsinformatics.gfatmnotifications.common.util;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -11,6 +12,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.model.Message;
+import com.ihsinformatics.util.DateTimeUtil;
 
 public class ExcelSheetWriter {
 
@@ -64,10 +66,11 @@ public class ExcelSheetWriter {
 		// Write the output to a file
 		FileOutputStream fileOut = null;
 		try {
-			fileOut = new FileOutputStream(fileName, true);
+			fileOut = new FileOutputStream(fileName);
 		} catch (FileNotFoundException e) {
 			// If not found, write on home directory
-			fileOut = new FileOutputStream(Context.DEFAULT_HOME_DIRECTORY + "gfatm-notifications.xlsx", true);
+			fileOut = new FileOutputStream(Context.DEFAULT_HOME_DIRECTORY + "gfatm-notifications-"
+					+ DateTimeUtil.toString(new Date(), DateTimeUtil.SQL_DATE) + ".xlsx");
 		}
 		workbook.write(fileOut);
 		fileOut.close();
