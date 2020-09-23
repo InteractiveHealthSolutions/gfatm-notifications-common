@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.file.DirectoryIteratorException;
+import java.security.GeneralSecurityException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,6 +34,7 @@ import org.joda.time.DateTime;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.ihsinformatics.gfatmnotifications.common.model.Contact;
 import com.ihsinformatics.gfatmnotifications.common.model.Encounter;
 import com.ihsinformatics.gfatmnotifications.common.model.Location;
 import com.ihsinformatics.gfatmnotifications.common.model.Observation;
@@ -69,6 +71,7 @@ public class Context {
 	private static RuleBook ruleBook;
 
 	private static List<User> users;
+	private static List<Contact> userContacts;
 	private static List<Location> locations;
 	private static List<String> userRoles;
 	private static List<Patient> patients;
@@ -121,6 +124,9 @@ public class Context {
 			}
 			if (locations == null) {
 				loadLocations(Context.getOpenmrsDb());
+			}
+			if (userContacts == null) {
+				loadContacts(Context.getDwDb());
 			}
 		}
 		if (initPatientData && patients == null) {
@@ -333,8 +339,10 @@ public class Context {
 	 * 
 	 * @throws DirectoryIteratorException
 	 * @throws IOException
+	 * @throws GeneralSecurityException 
 	 */
-	public static void loadRuleBook() throws IOException {
+	public static void loadRuleBook() throws IOException  {
+		
 		String ruleBookFilePath = getProps().getProperty("rulebook.file");
 		File ruleBookFile = new File(ruleBookFilePath);
 		// Try to read from home directory
@@ -345,6 +353,7 @@ public class Context {
 			throw new DirectoryIteratorException(new IOException("Rule file is either a directory or inaccessible."));
 		}
 		Context.ruleBook = new RuleBook(ruleBookFile);
+
 	}
 
 	/**
@@ -1072,5 +1081,86 @@ public class Context {
 			}
 		}
 		return map;
+	}
+	
+	/**
+	 * Fetch all contacts from DB and store locally
+	 */
+	@Deprecated
+	public static void loadContacts(DatabaseUtil dbUtil) {
+		StringBuilder query = new StringBuilder();
+		query.append(
+				"select u.person_id as personId, la.location_id as locationId, l.name as locationName, pc.value as primaryContact, sc.value as secondaryContact, em.value as emailAddress from users as u ");
+		query.append(
+				"left outer join location_attribute as la on la.attribute_type_id = 16 and la.value_reference = u.system_id ");
+		query.append("left outer join location as l on l.location_id = la.location_id ");
+		query.append(
+				"left outer join person_attribute as em on em.person_id = u.person_id and em.person_attribute_type_id = 29 and em.voided = 0 ");
+		query.append(
+				"left outer join person_attribute as pc on pc.person_id = u.person_id and pc.person_attribute_type_id = 8 and pc.voided = 0 ");
+		query.append(
+				"left outer join person_attribute as sc on sc.person_id = u.person_id and sc.person_attribute_type_id = 12 and sc.voided = 0 ");
+		query.append(
+				"having (concat(ifnull(emailAddress, ''), ifnull(primaryContact, ''), ifnull(secondaryContact, ''))) <> ''");
+		String jsonString = queryToJson(query.toString(), dbUtil);
+		Type listType = new TypeToken<List<Contact>>() {
+		}.getType();
+		userContacts = builder.create().fromJson(jsonString, listType);
+	}
+	
+	public static Contact getContactByLocationId(Integer locationId, DatabaseUtil dbUtil) {
+		Location location = getLocationById(locationId, dbUtil);
+		return getContactByLocationName(location.getName(), dbUtil);
+	}
+
+	public static Contact getContactByLocationName(String locationName, DatabaseUtil dbUtil) {
+		if (getUserContacts().isEmpty()) {
+			loadContacts(dbUtil);
+		}
+		for (Contact email : getUserContacts()) {
+			if (email.getLocationName().equals(locationName)) {
+				return email;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * @return the userContacts
+	 */
+	@Deprecated
+	public static List<Contact> getUserContacts() {
+		return userContacts;
+	}
+	
+	/**
+	 * @param userContacts the userContacts to set
+	 */
+	@Deprecated
+	public static void setUserContacts(List<Contact> userContacts) {
+		Context.userContacts = userContacts;
+	}
+	
+	@Deprecated
+	public static Contact getUserContactByLocationId(int locationId, DatabaseUtil dbUtil) {
+		if (getUserContacts().isEmpty()) {
+			loadContacts(dbUtil);
+		}
+		for (Contact contact : getUserContacts()) {
+			if (contact.getLocationId() == locationId) {
+				return contact;
+			}
+		}
+		return null;
+
+	}
+	
+	@Deprecated
+	public static Contact getUserContactByLocationName(String locationName, DatabaseUtil dbUtil) {
+		Location location = getLocationByName(locationName, dbUtil);
+		if (location == null) {
+			return null;
+		}
+		return getUserContactByLocationId(location.getLocationId(), dbUtil);
 	}
 }
