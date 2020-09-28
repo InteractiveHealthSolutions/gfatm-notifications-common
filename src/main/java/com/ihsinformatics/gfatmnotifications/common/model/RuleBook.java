@@ -136,7 +136,6 @@ public RuleBook(String googleSheetId) throws IOException, GeneralSecurityExcepti
 				break;
 			}
 			Rule rule = new Rule();
-			System.out.println(row.getCell(typeColumn).getStringCellValue()+"---"+row.getRowNum()+"----" +sheet.getLastRowNum() );
 			rule.setType(NotificationType.valueOf(row.getCell(typeColumn).getStringCellValue()));
 			rule.setEncounterType(row.getCell(encounterColumn).getStringCellValue());
 			rule.setConditions(row.getCell(conditionsColumn).getStringCellValue());
