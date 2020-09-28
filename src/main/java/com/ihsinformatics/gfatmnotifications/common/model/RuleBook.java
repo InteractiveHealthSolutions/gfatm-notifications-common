@@ -69,7 +69,7 @@ public RuleBook(String googleSheetId) throws IOException, GeneralSecurityExcepti
                 .execute();
         List<List<Object>> values = response.getValues();
         setRules(new ArrayList<Rule>());
-        for (int i = 1; i < response.size(); i++) {
+        for (int i = 1; i < values.size(); i++) {
         	Rule rule = new Rule();
         	rule.setType(NotificationType.valueOf(String.valueOf(values.get(i).get(typeColumn))));
 			rule.setEncounterType(String.valueOf(values.get(i).get(encounterColumn)));
@@ -86,7 +86,7 @@ public RuleBook(String googleSheetId) throws IOException, GeneralSecurityExcepti
 				rule.setRecordOnly(String.valueOf(values.get(i).get(recordOnlyColumn)));
 			} catch (Exception e) {
 			}
-			rules.add(rule);
+			rules.add(rule);			
         }
         
         String messagesRange = "Messages!A1:Z1000";
@@ -108,11 +108,12 @@ public RuleBook(String googleSheetId) throws IOException, GeneralSecurityExcepti
 		setBlacklistedLocations(new HashSet<String>());
 		setBlacklistedUsers(new HashSet<String>());
 
-		for (int i = 1; i < response.size(); i++) {
+		for (int i = 1; i < values.size(); i++) {
 			try {
-				getBlacklistedPatient().add(String.valueOf(values.get(i).get(0)));
-				getBlacklistedLocations().add(String.valueOf(values.get(i).get(1)));
-				getBlacklistedUsers().add(String.valueOf(values.get(i).get(2)));
+					getBlacklistedPatient().add(String.valueOf(values.get(i).get(0)));
+					getBlacklistedLocations().add(String.valueOf(values.get(i).get(1)));
+					getBlacklistedUsers().add(String.valueOf(values.get(i).get(2)));
+				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
