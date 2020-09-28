@@ -67,7 +67,11 @@ public class RuleBook {
 			if (row.getRowNum() == 0) {
 				continue;
 			}
+			if(row.getCell(typeColumn).getStringCellValue().equals("")){
+				break;
+			}
 			Rule rule = new Rule();
+			System.out.println(row.getCell(typeColumn).getStringCellValue()+"---"+row.getRowNum()+"----" +sheet.getLastRowNum() );
 			rule.setType(NotificationType.valueOf(row.getCell(typeColumn).getStringCellValue()));
 			rule.setEncounterType(row.getCell(encounterColumn).getStringCellValue());
 			rule.setConditions(row.getCell(conditionsColumn).getStringCellValue());
@@ -93,6 +97,9 @@ public class RuleBook {
 			if (row.getRowNum() == 0) {
 				continue;
 			}
+			if(row.getCell(0).getStringCellValue().equals("")){
+				break;
+			}
 			getMessages().put(row.getCell(0).getStringCellValue(), row.getCell(1).getStringCellValue());
 		}
 
@@ -105,6 +112,9 @@ public class RuleBook {
 			// Skip the header row
 			if (row.getRowNum() == 0) {
 				continue;
+			}
+			if(row.getCell(0) == null || row.getCell(0).getStringCellValue().equals("")){
+				break;
 			}
 			try {
 				getBlacklistedPatient().add(row.getCell(0).getStringCellValue());
