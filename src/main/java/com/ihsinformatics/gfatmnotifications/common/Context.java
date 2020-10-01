@@ -343,16 +343,28 @@ public class Context {
 	 */
 	public static void loadRuleBook() throws IOException  {
 		
-		String ruleBookFilePath = getProps().getProperty("rulebook.file");
-		File ruleBookFile = new File(ruleBookFilePath);
-		// Try to read from home directory
-		if (!ruleBookFile.exists()) {
-			ruleBookFile = new File(DEFAULT_HOME_DIRECTORY + "RuleBook.xlsx");
+		String source = getProps().getProperty("rulebook.source", "");
+		if(source.equalsIgnoreCase("Google Sheets")){
+			try{
+			String googleSheetId = getProps().getProperty("rulebook.googlesheetid");
+			Context.ruleBook = new RuleBook(googleSheetId);
+			}
+			catch(GeneralSecurityException e){
+				
+			}
 		}
-		if (ruleBookFile.isDirectory() || !ruleBookFile.canRead()) {
-			throw new DirectoryIteratorException(new IOException("Rule file is either a directory or inaccessible."));
+		else{
+			String ruleBookFilePath = getProps().getProperty("rulebook.file");
+			File ruleBookFile = new File(ruleBookFilePath);
+			// Try to read from home directory
+			if (!ruleBookFile.exists()) {
+				ruleBookFile = new File(DEFAULT_HOME_DIRECTORY + "RuleBook.xlsx");
+			}
+			if (ruleBookFile.isDirectory() || !ruleBookFile.canRead()) {
+				throw new DirectoryIteratorException(new IOException("Rule file is either a directory or inaccessible."));
+			}
+			Context.ruleBook = new RuleBook(ruleBookFile);
 		}
-		Context.ruleBook = new RuleBook(ruleBookFile);
 
 	}
 

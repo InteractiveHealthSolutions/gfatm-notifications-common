@@ -14,6 +14,7 @@ package com.ihsinformatics.gfatmnotifications.common.model;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,8 +27,11 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.model.ValueRange;
 import com.ihsinformatics.gfatmnotifications.common.Context;
 import com.ihsinformatics.gfatmnotifications.common.util.NotificationType;
+import com.ihsinformatics.gfatmnotifications.common.util.SheetsServiceUtil;
 import com.ihsinformatics.gfatmnotifications.common.util.ValidationUtil;
 
 /**
@@ -54,6 +58,68 @@ public class RuleBook {
 	private Set<String> blacklistedPatients;
 	private Set<String> blacklistedLocations;
 	private Set<String> blacklistedUsers;
+	
+public RuleBook(String googleSheetId) throws IOException, GeneralSecurityException{
+		
+        Sheets sheetsService = SheetsServiceUtil.getSheetsService();
+
+		String rulesRange = "Rules!A1:Z1000";
+        ValueRange response = sheetsService.spreadsheets().values()
+                .get(googleSheetId, rulesRange)
+                .execute();
+        List<List<Object>> values = response.getValues();
+        setRules(new ArrayList<Rule>());
+        for (int i = 1; i < values.size(); i++) {
+        	Rule rule = new Rule();
+        	rule.setType(NotificationType.valueOf(String.valueOf(values.get(i).get(typeColumn))));
+			rule.setEncounterType(String.valueOf(values.get(i).get(encounterColumn)));
+			rule.setConditions(String.valueOf(values.get(i).get(conditionsColumn)));
+			rule.setSendTo(String.valueOf(values.get(i).get(sendToColumn)));
+			rule.setScheduleDate(String.valueOf(values.get(i).get(scheduleDateColumn)));
+			rule.setPlusMinus(Double.parseDouble(String.valueOf(values.get(i).get(plusMinusColumn))));
+			rule.setPlusMinusUnit(String.valueOf(values.get(i).get(plusMinusUnitColumn)));
+			rule.setMessageCode(String.valueOf(values.get(i).get(messageCodeColumn)));
+			try {
+				rule.setFetchDuration(String.valueOf(values.get(i).get(fetchDurationColumn)));
+				rule.setStopConditions(String.valueOf(values.get(i).get(stopConditionColumn)));
+				rule.setDatabaseConnectionName(String.valueOf(values.get(i).get(databaseConnectionNameColumn)));
+				rule.setRecordOnly(String.valueOf(values.get(i).get(recordOnlyColumn)));
+			} catch (Exception e) {
+			}
+			rules.add(rule);			
+        }
+        
+        String messagesRange = "Messages!A1:Z1000";
+        response = sheetsService.spreadsheets().values()
+                .get(googleSheetId, messagesRange)
+                .execute();
+        values = response.getValues();
+		setMessages(new HashMap<String, String>());
+		for (int i = 1; i < response.size(); i++) {
+			getMessages().put(String.valueOf(values.get(i).get(0)), String.valueOf(values.get(i).get(1)));
+		}
+		
+		String blacklistRange = "Blacklist!A1:Z1000";
+        response = sheetsService.spreadsheets().values()
+                .get(googleSheetId, blacklistRange)
+                .execute();
+        values = response.getValues();
+		setBlacklistedPatient(new HashSet<String>());
+		setBlacklistedLocations(new HashSet<String>());
+		setBlacklistedUsers(new HashSet<String>());
+
+		for (int i = 1; i < values.size(); i++) {
+			try {
+					getBlacklistedPatient().add(String.valueOf(values.get(i).get(0)));
+					getBlacklistedLocations().add(String.valueOf(values.get(i).get(1)));
+					getBlacklistedUsers().add(String.valueOf(values.get(i).get(2)));
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+	}
 
 	public RuleBook(File ruleBookFile) throws IOException {
 		FileInputStream fis = new FileInputStream(ruleBookFile);
@@ -66,6 +132,9 @@ public class RuleBook {
 			// Skip the header row
 			if (row.getRowNum() == 0) {
 				continue;
+			}
+			if(row.getCell(typeColumn).getStringCellValue().equals("")){
+				break;
 			}
 			Rule rule = new Rule();
 			rule.setType(NotificationType.valueOf(row.getCell(typeColumn).getStringCellValue()));
@@ -93,6 +162,9 @@ public class RuleBook {
 			if (row.getRowNum() == 0) {
 				continue;
 			}
+			if(row.getCell(0).getStringCellValue().equals("")){
+				break;
+			}
 			getMessages().put(row.getCell(0).getStringCellValue(), row.getCell(1).getStringCellValue());
 		}
 
@@ -105,6 +177,9 @@ public class RuleBook {
 			// Skip the header row
 			if (row.getRowNum() == 0) {
 				continue;
+			}
+			if(row.getCell(0) == null || row.getCell(0).getStringCellValue().equals("")){
+				break;
 			}
 			try {
 				getBlacklistedPatient().add(row.getCell(0).getStringCellValue());
