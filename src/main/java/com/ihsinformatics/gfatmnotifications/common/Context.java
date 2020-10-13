@@ -1019,23 +1019,11 @@ public class Context {
 			// Should send next minute
 			returnDate = referenceDate.withHourOfDay(now.getHourOfDay()).withMinuteOfHour(now.getMinuteOfHour() + 1);
 		} else if (plusMinusUnit.equalsIgnoreCase("hours")) {
-			if (plusMinus < 0) {
-				returnDate = referenceDate.minusHours(plusMinus.intValue());
-			} else {
-				returnDate = referenceDate.plusHours(plusMinus.intValue());
-			}
+			returnDate = referenceDate.plusHours(plusMinus.intValue());
 		} else if (plusMinusUnit.equalsIgnoreCase("days")) {
-			if (plusMinus < 0) {
-				returnDate = referenceDate.minusDays(plusMinus.intValue());
-			} else {
-				returnDate = referenceDate.plusDays(plusMinus.intValue());
-			}
+			returnDate = referenceDate.plusDays(plusMinus.intValue());
 		} else if (plusMinusUnit.equalsIgnoreCase("months")) {
-			if (plusMinus < 0) {
-				returnDate = referenceDate.minusMonths(plusMinus.intValue());
-			} else {
-				returnDate = referenceDate.plusMonths(plusMinus.intValue());
-			}
+			returnDate = referenceDate.plusMonths(plusMinus.intValue());
 		}
 		DateTime dayStart = returnDate.withHourOfDay(8).withMinuteOfHour(0).withSecondOfMinute(0);
 		DateTime dayEnd = returnDate.withHourOfDay(18).withMinuteOfHour(59).withSecondOfMinute(59);
