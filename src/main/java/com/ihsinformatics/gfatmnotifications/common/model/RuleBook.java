@@ -95,7 +95,7 @@ public RuleBook(String googleSheetId) throws IOException, GeneralSecurityExcepti
                 .execute();
         values = response.getValues();
 		setMessages(new HashMap<String, String>());
-		for (int i = 1; i < response.size(); i++) {
+		for (int i = 1; i < values.size(); i++) {
 			getMessages().put(String.valueOf(values.get(i).get(0)), String.valueOf(values.get(i).get(1)));
 		}
 		
