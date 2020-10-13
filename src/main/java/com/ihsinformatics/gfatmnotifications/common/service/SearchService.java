@@ -136,7 +136,9 @@ public class SearchService {
 					return Context.getLocationByName(value, dbUtil);
 				} else if (ValidationUtil.isValidUsername(value)) {
 					return Context.getUserByUsername(value, dbUtil);
-				}
+				} else if (ValidationUtil.isValidContactNumber(value)){
+					
+				} 
 			}
 		}
 		return null;

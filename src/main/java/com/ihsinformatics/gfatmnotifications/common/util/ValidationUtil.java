@@ -232,7 +232,7 @@ public class ValidationUtil {
 		Object[][] data = Context.getOpenmrsDb().getTableData(query);
 		for (Object[] row : data) {
 			for (Object obj : row) {
-				if (Objects.equals(obj, value)) {
+				if (obj.toString().equals(value)) {
 					return true;
 				}
 			}
@@ -296,8 +296,8 @@ public class ValidationUtil {
 	public static boolean validateConditions(String conditions, Patient patient, Location location, Encounter encounter,
 			DatabaseUtil dbUtil) {
 		// Check if the encounter requires to be retrieved
-		String orPattern = "(.)+OR(.)+";
-		String andPattern = "(.)+AND(.)+";
+		String orPattern = "(.)+\\}OR\\{(.)+";
+		String andPattern = "(.)+\\}AND\\{(.)+";
 		if (conditions.matches(orPattern) && conditions.matches(andPattern)) {
 			String[] conditionTokens = conditions.split("( )?OR( )?");
 			for (String condition : conditionTokens) {
