@@ -88,10 +88,12 @@ public class FormattedMessageParser {
 				} catch (ReflectiveOperationException e) {
 					e.printStackTrace();
 				}
-				// Change the date to a more human readable format
-				if (resultPropertyVal.matches(DateTimeUtil.SQL_DATE)
-						|| resultPropertyVal.matches(DateTimeUtil.SQL_DATETIME)) {
+				try{
+					DateTimeUtil.detectDateFormat(resultPropertyVal);
+					// Change the date to a more human readable format
 					resultPropertyVal = getReadableDate(DateTimeUtil.fromSqlDateString(resultPropertyVal));
+				}catch(Exception e){
+					
 				}
 				values = resultPropertyVal;
 				output.append(values);
@@ -112,10 +114,11 @@ public class FormattedMessageParser {
 	 * @return
 	 */
 	public String getReadableDate(Date date) {
-		String dayName = new DateFormatSymbols().getWeekdays()[new Date().getDay() + 1];
+		
+		String dayName = new DateFormatSymbols().getWeekdays()[date.getDay()+1];
 		String dateString = DateTimeUtil.toString(date, DateTimeUtil.STANDARD_DATE_HYPHENATED);
-		DaysInUrdu urduName = DaysInUrdu.valueOf(dayName);
-		return dateString + ", " + dayName + "(" + urduName + ")";
+		DaysInUrdu urduName = DaysInUrdu.valueOf(dayName.toUpperCase());
+		return dateString + ", barooz " + urduName.getValue() + "";
 	}
 
 	/**
