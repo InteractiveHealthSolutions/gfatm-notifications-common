@@ -129,7 +129,7 @@ public class ValidationUtil {
 			} else {
 				occurrances = 0;
 			}
-			if (occurrances >= 5) {
+			if (occurrances >= 6) {
 				return false;
 			}
 		}
@@ -140,7 +140,7 @@ public class ValidationUtil {
 			} else {
 				occurrances = 0;
 			}
-			if (occurrances >= 5) {
+			if (occurrances >= 6) {
 				return false;
 			}
 		}
