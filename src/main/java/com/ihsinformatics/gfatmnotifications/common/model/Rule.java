@@ -232,6 +232,12 @@ public class Rule {
 			c.add(Calendar.HOUR, duration);
 			returnDate = referenceDate.minusHours(duration).toDateTime();
 		}
+		if(returnDate != null){
+		return returnDate
+			    .withHourOfDay(0)
+			    .withMinuteOfHour(0)
+			    .withSecondOfMinute(0);
+		}
 		return returnDate;
 	}
 
@@ -258,5 +264,20 @@ public class Rule {
 	public String toString() {
 		return type + ", " + encounterType + ", " + sendTo + ", " + scheduleDate + ", " + plusMinus + ", "
 				+ plusMinusUnit + ", " + messageCode + ", " + conditions + ", " + stopConditions;
+	}
+	
+	public static Date getZeroTimeDate(Date fecha) {
+	    Date res = fecha;
+	    Calendar calendar = Calendar.getInstance();
+
+	    calendar.setTime( fecha );
+	    calendar.set(Calendar.HOUR_OF_DAY, 0);
+	    calendar.set(Calendar.MINUTE, 0);
+	    calendar.set(Calendar.SECOND, 0);
+	    calendar.set(Calendar.MILLISECOND, 0);
+
+	    res = calendar.getTime();
+
+	    return res;
 	}
 }
