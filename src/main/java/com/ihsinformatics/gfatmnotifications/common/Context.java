@@ -609,6 +609,7 @@ public class Context {
 			filter.append("and e.encounter_type = " + type);
 		}
 		StringBuilder query = new StringBuilder();
+		query.append("SELECT * FROM ( ");
 		query.append(
 				"select e.encounter_id as encounterId, et.name as encounterType, pi.identifier, concat(pn.given_name, ' ', pn.family_name) as patientName, e.encounter_datetime as encounterDatetime, l.name as encounterLocation, pc.value as patientContact, lc.value_reference as locationContact, pr.identifier as provider, upc.value as providerContact, u.username, e.date_created as dateCreated, e.uuid from encounter as e ");
 		query.append("inner join encounter_type as et on et.encounter_type_id = e.encounter_type ");
@@ -626,6 +627,8 @@ public class Context {
 				"left outer join person_attribute as upc on upc.person_id = pr.person_id and upc.person_attribute_type_id = 8 ");
 		query.append("left outer join users as u on u.system_id = pr.identifier ");
 		query.append(filter);
+		query.append(" order by e.encounter_datetime desc, e.encounter_id desc) as tab ");
+		query.append("group by tab.identifier");
 		// Convert query into json string
 		log.info(query.toString());
 		String jsonString = queryToJson(query.toString(), dbUtil);
