@@ -60,7 +60,7 @@ public class Context {
 	public static final String DEFAULT_HOME_DIRECTORY = System.getProperty("user.home") + System.getProperty("file.separator");
 	private static final Logger log = Logger.getLogger(Class.class.getName());
 	public static final String PROP_FILE_NAME = "gfatm-notifications.properties";
-	public static final String PROJECT_NAME = "Aao-TB-Mitao Notifications";
+	public static final String PROJECT_NAME = "Aao-TB-Mitao-Notifications";
 
 	private static Properties props;
 	private static DatabaseUtil dbOpenmrsUtil;
